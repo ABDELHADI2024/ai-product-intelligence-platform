@@ -1,87 +1,38 @@
-# AI Product Intelligence Platform
+# AI Product Intelligence Starter Package
 
-Enterprise-grade AI-native platform combining:
+This package contains the first architecture and data-pipeline starter files for the AI Product Intelligence Platform.
 
-- Semantic Product Search
-- Recommendation Systems
-- Retrieval-Augmented Generation (RAG)
-- AI Shopping Assistant
-- Dynamic Product Comparison
-- AI Scoring Engine
-- SEO Automation
-- Multi-Agent AI Architecture
+## Included
 
-## Vision
+```txt
+docs/AI_OPERATING_MODEL.md
+packages/data-pipeline/
+```
 
-Build a scalable AI-powered ecosystem for intelligent consumer tech discovery, recommendation, and analysis.
+## How to use
 
-## Core Systems
+Copy these folders into the root of your GitHub repository:
 
-### AI Search Engine
-- Semantic search
-- Vector embeddings
-- Hybrid retrieval
-- Ranking systems
+```txt
+ai-product-intelligence-platform/
+  docs/
+  packages/data-pipeline/
+```
 
-### AI Assistant
-- Conversational recommendation engine
-- Personalized shopping advisor
-- Context-aware AI assistant
+Then commit:
 
-### Comparison Intelligence
-- Dynamic scoring
-- AI-generated comparisons
-- Personalized rankings
+```bash
+git add docs/AI_OPERATING_MODEL.md packages/data-pipeline
+git commit -m "Add AI operating model and data pipeline foundation"
+git push
+```
 
-### Content Engine
-- SEO automation
-- AI-generated reviews
-- Buying guides
-- Multi-language support
+## First Goal
 
-### Multi-Agent Architecture
-- Recommendation agents
-- SEO agents
-- Ranking agents
-- Trend analysis agents
+Build the Product Ingestion Pipeline MVP before building complex agents.
 
-## Stack
+Correct order:
 
-### Frontend
-- Next.js
-- TypeScript
-- TailwindCSS
-
-### Backend
-- FastAPI
-- Python
-
-### Database
-- PostgreSQL
-- Supabase
-- pgvector
-
-### AI
-- OpenAI
-- LangChain
-- LangGraph
-
-## Future Roadmap
-
-- Advanced RAG pipelines
-- AI memory systems
-- Personalized AI shopping agents
-- Real-time pricing intelligence
-- Benchmark ingestion pipelines
-- AI observability layer
-- Autonomous AI workflows
-
-## Goal
-
-Create a reference-level AI product ecosystem demonstrating:
-- AI Architecture
-- Retrieval Systems
-- Product Intelligence
-- Data Engineering
-- Multi-Agent AI Orchestration
-- AI Product Strategy
+```txt
+Data pipeline → JSON schemas → staging tables → validation → normalization → Supabase insert → embeddings → agents
+```
