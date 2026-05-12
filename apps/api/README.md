@@ -1,3 +1,0 @@
-# API Backend
-
-FastAPI backend.
