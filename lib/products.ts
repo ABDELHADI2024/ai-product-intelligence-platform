@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabase';
+import { hasSupabaseConfig, supabase } from './supabase';
 
 export type Product = {
   id: string;
@@ -9,8 +9,8 @@ export type Product = {
   product_type: string | null;
   normalized_category: string | null;
   image_url: string | null;
-  price_usd: number | null;
   price_eur: number | null;
+  price_usd: number | null;
   screen_size: string | null;
   chipset: string | null;
   battery_mah: string | null;
@@ -19,15 +19,16 @@ export type Product = {
   camera_score: number | null;
   battery_score: number | null;
   gaming_score: number | null;
+  display_score: number | null;
   value_score: number | null;
   content_summary_en: string | null;
-  project_stage: string | null;
-  created_at: string | null;
+  expert_opinion_en: string | null;
+  created_at?: string | null;
 };
 
-const fallbackProducts: Product[] = [
+const demoProducts: Product[] = [
   {
-    id: 'demo-huawei-nova-15-max',
+    id: 'demo-1',
     brand: 'Huawei',
     model: 'Nova 15 Max',
     slug: 'huawei-nova-15-max',
@@ -35,25 +36,27 @@ const fallbackProducts: Product[] = [
     product_type: 'smartphone',
     normalized_category: 'smartphones',
     image_url: 'https://fdn2.gsmarena.com/vv/pics/huawei/huawei-nova-15-max-1.jpg',
-    price_usd: null,
     price_eur: null,
-    screen_size: null,
-    chipset: null,
-    battery_mah: null,
-    rear_camera: null,
+    price_usd: null,
+    screen_size: 'Specs coming soon',
+    chipset: 'Specs coming soon',
+    battery_mah: 'Specs coming soon',
+    rear_camera: 'Specs coming soon',
     global_score: null,
     camera_score: null,
     battery_score: null,
     gaming_score: null,
+    display_score: null,
     value_score: null,
-    content_summary_en: 'Demo product from the Witflag AI data pipeline. Connect Supabase to display live products.',
-    project_stage: 'demo',
-    created_at: null
-  }
+    content_summary_en: 'A product intelligence record prepared for semantic search, AI recommendations, comparison workflows, and multilingual content.',
+    expert_opinion_en: 'This product is ready for the Witflag AI intelligence pipeline.',
+  },
 ];
 
 export async function getProducts(limit = 24): Promise<Product[]> {
-  if (!isSupabaseConfigured || !supabase) return fallbackProducts;
+  if (!hasSupabaseConfig || !supabase) {
+    return demoProducts.slice(0, limit);
+  }
 
   const { data, error } = await supabase
     .from('products')
@@ -61,28 +64,26 @@ export async function getProducts(limit = 24): Promise<Product[]> {
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (error) {
-    console.error('Supabase products error:', error.message);
-    return fallbackProducts;
+  if (error || !data || data.length === 0) {
+    return demoProducts.slice(0, limit);
   }
 
-  return data?.length ? (data as Product[]) : fallbackProducts;
+  return data as Product[];
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  if (!isSupabaseConfigured || !supabase) {
-    return fallbackProducts.find((product) => product.slug === slug) || null;
+  if (!hasSupabaseConfig || !supabase) {
+    return demoProducts.find((product) => product.slug === slug) || null;
   }
 
   const { data, error } = await supabase
     .from('products')
     .select('*')
     .eq('slug', slug)
-    .single();
+    .maybeSingle();
 
-  if (error) {
-    console.error('Supabase product error:', error.message);
-    return fallbackProducts.find((product) => product.slug === slug) || null;
+  if (error || !data) {
+    return demoProducts.find((product) => product.slug === slug) || null;
   }
 
   return data as Product;
