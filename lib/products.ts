@@ -1,60 +1,90 @@
-import { hasSupabaseConfig, supabase } from './supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export type Product = {
   id: string;
   brand: string | null;
   model: string | null;
-  slug: string | null;
   full_name: string | null;
+  slug: string | null;
   product_type: string | null;
   normalized_category: string | null;
   image_url: string | null;
-  price_eur: number | null;
-  price_usd: number | null;
+  price_eur: number | string | null;
   screen_size: string | null;
+  screen_type: string | null;
+  resolution: string | null;
+  refresh_rate: string | null;
   chipset: string | null;
+  ram: string | null;
+  storage: string | null;
   battery_mah: string | null;
   rear_camera: string | null;
-  global_score: number | null;
-  camera_score: number | null;
-  battery_score: number | null;
-  gaming_score: number | null;
-  display_score: number | null;
-  value_score: number | null;
+  front_camera: string | null;
+  camera_score: number | string | null;
+  battery_score: number | string | null;
+  display_score: number | string | null;
+  gaming_score: number | string | null;
+  value_score: number | string | null;
+  global_score: number | string | null;
   content_summary_en: string | null;
+  pros_en: string | null;
+  cons_en: string | null;
   expert_opinion_en: string | null;
-  created_at?: string | null;
 };
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const demoProducts: Product[] = [
   {
-    id: 'demo-1',
+    id: 'demo-huawei-nova-15-max',
     brand: 'Huawei',
     model: 'Nova 15 Max',
-    slug: 'huawei-nova-15-max',
     full_name: 'Huawei Nova 15 Max',
+    slug: 'huawei-nova-15-max',
     product_type: 'smartphone',
     normalized_category: 'smartphones',
     image_url: 'https://fdn2.gsmarena.com/vv/pics/huawei/huawei-nova-15-max-1.jpg',
-    price_eur: null,
-    price_usd: null,
-    screen_size: 'Specs coming soon',
-    chipset: 'Specs coming soon',
-    battery_mah: 'Specs coming soon',
-    rear_camera: 'Specs coming soon',
-    global_score: null,
-    camera_score: null,
-    battery_score: null,
-    gaming_score: null,
-    display_score: null,
-    value_score: null,
-    content_summary_en: 'A product intelligence record prepared for semantic search, AI recommendations, comparison workflows, and multilingual content.',
-    expert_opinion_en: 'This product is ready for the Witflag AI intelligence pipeline.',
+    price_eur: 499,
+    screen_size: '6.8 inches',
+    screen_type: 'OLED',
+    resolution: '1224 x 2700 pixels',
+    refresh_rate: '120Hz',
+    chipset: 'Mid-range 5G chipset',
+    ram: '12GB',
+    storage: '256GB',
+    battery_mah: '5000',
+    rear_camera: 'Triple camera system',
+    front_camera: 'High-resolution selfie camera',
+    camera_score: 82,
+    battery_score: 86,
+    display_score: 88,
+    gaming_score: 78,
+    value_score: 84,
+    global_score: 84,
+    content_summary_en:
+      'Huawei Nova 15 Max is a large-screen smartphone prepared for AI product intelligence, semantic search, recommendation workflows, and dynamic comparison pages.',
+    pros_en:
+      'Large display, strong battery profile, modern design, good value positioning',
+    cons_en:
+      'Full benchmark data and final pricing still need validation',
+    expert_opinion_en:
+      'A promising large-screen smartphone for users who care about display, battery life, and everyday performance.',
   },
 ];
 
-export async function getProducts(limit = 24): Promise<Product[]> {
-  if (!hasSupabaseConfig || !supabase) {
+function getSupabaseClient() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
+
+export async function getProducts(limit = 12): Promise<Product[]> {
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
     return demoProducts.slice(0, limit);
   }
 
@@ -72,7 +102,9 @@ export async function getProducts(limit = 24): Promise<Product[]> {
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  if (!hasSupabaseConfig || !supabase) {
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
     return demoProducts.find((product) => product.slug === slug) || null;
   }
 
@@ -82,9 +114,13 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     .eq('slug', slug)
     .maybeSingle();
 
-  if (error || !data) {
-    return demoProducts.find((product) => product.slug === slug) || null;
+  if (error) {
+    console.error('Supabase product detail error:', error.message);
   }
 
-  return data as Product;
+  if (data) {
+    return data as Product;
+  }
+
+  return demoProducts.find((product) => product.slug === slug) || null;
 }
