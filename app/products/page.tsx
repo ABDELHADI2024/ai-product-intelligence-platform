@@ -4,18 +4,18 @@ import { getProducts } from '@/lib/products';
 export const dynamic = 'force-dynamic';
 
 export default async function ProductsPage() {
-  const products = await getProducts(60);
+  const products = await getProducts(30);
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-12">
-      <p className="text-sm uppercase tracking-wide text-cyan-300">Product database</p>
-      <h1 className="mt-2 text-4xl font-bold text-white">All products</h1>
-      <p className="mt-4 max-w-2xl text-slate-400">
-        Products are loaded from Supabase when environment variables are configured. Otherwise, a demo product appears so the website always works.
-      </p>
-      <div className="mt-10">
-        <ProductGrid products={products} />
+      <div className="mb-10">
+        <p className="text-sm uppercase tracking-wide text-cyan-300">Live database</p>
+        <h1 className="mt-2 text-5xl font-bold text-white">Products</h1>
+        <p className="mt-4 max-w-3xl text-lg text-slate-300">
+          Explore AI-ready consumer tech records from Supabase, prepared for semantic search, recommendations, comparisons, and RAG workflows.
+        </p>
       </div>
+      <ProductGrid products={products} />
     </main>
   );
 }
