@@ -18,6 +18,7 @@ export type Product = {
   ram: string | null;
   storage: string | null;
   battery_mah: string | null;
+  battery_capacity?: string | null;
   rear_camera: string | null;
   front_camera: string | null;
   camera_score: number | string | null;
@@ -35,7 +36,7 @@ export type Product = {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const demoProducts: Product[] = [
+export const demoProducts: Product[] = [
   {
     id: 'demo-huawei-nova-15-max',
     brand: 'Huawei',
@@ -54,6 +55,7 @@ const demoProducts: Product[] = [
     ram: '12GB',
     storage: '256GB',
     battery_mah: '5000',
+    battery_capacity: '5000mAh',
     rear_camera: 'Triple camera system',
     front_camera: 'High-resolution selfie camera',
     camera_score: 82,
@@ -74,19 +76,14 @@ const demoProducts: Product[] = [
 ];
 
 function getSupabaseClient() {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return null;
-  }
-
+  if (!supabaseUrl || !supabaseAnonKey) return null;
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 
 export async function getProducts(limit = 12): Promise<Product[]> {
   const supabase = getSupabaseClient();
 
-  if (!supabase) {
-    return demoProducts.slice(0, limit);
-  }
+  if (!supabase) return demoProducts.slice(0, limit);
 
   const { data, error } = await supabase
     .from('products')
@@ -94,33 +91,35 @@ export async function getProducts(limit = 12): Promise<Product[]> {
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (error || !data || data.length === 0) {
+  if (error) {
+    console.error('Supabase products list error:', error.message);
     return demoProducts.slice(0, limit);
   }
+
+  if (!data || data.length === 0) return demoProducts.slice(0, limit);
 
   return data as Product[];
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
+  const normalizedSlug = decodeURIComponent(slug).trim().toLowerCase();
   const supabase = getSupabaseClient();
 
-  if (!supabase) {
-    return demoProducts.find((product) => product.slug === slug) || null;
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .ilike('slug', normalizedSlug)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Supabase product detail error:', error.message);
+    }
+
+    if (data) return data as Product;
   }
 
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('slug', slug)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Supabase product detail error:', error.message);
-  }
-
-  if (data) {
-    return data as Product;
-  }
-
-  return demoProducts.find((product) => product.slug === slug) || null;
+  return (
+    demoProducts.find((product) => product.slug === normalizedSlug) || null
+  );
 }
