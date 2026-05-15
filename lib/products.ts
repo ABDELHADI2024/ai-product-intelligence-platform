@@ -138,3 +138,14 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
   return demoProducts.find((product) => product.slug === slug) || null;
 }
+
+export function splitList(value: string | null | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
