@@ -18,8 +18,6 @@ export type Product = {
   ram: string | null;
   storage: string | null;
   battery_mah: string | null;
-  battery_capacity: string | null;
-  charging_w: string | null;
   rear_camera: string | null;
   front_camera: string | null;
   camera_score: number | string | null;
@@ -34,33 +32,28 @@ export type Product = {
   expert_opinion_en: string | null;
 };
 
-export function safeText(value: string | number | null | undefined, fallback = 'Coming soon') {
-  if (value === null || value === undefined || value === '') return fallback;
-  return String(value);
+export function safeNumber(value: number | string | null | undefined, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
 }
 
-export function safeNumber(value: string | number | null | undefined): number | null {
-  if (value === null || value === undefined || value === '') return null;
-  const parsed = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+export function formatScore(value: number | string | null | undefined): string {
+  const score = safeNumber(value, 0);
+  return score > 0 ? String(Math.round(score)) : 'Pending';
 }
 
-export function formatScore(value: string | number | null | undefined) {
-  const score = safeNumber(value);
-  return score === null ? 'Pending' : Math.round(score).toString();
+export function formatPrice(value: number | string | null | undefined): string {
+  const price = safeNumber(value, 0);
+  return price > 0 ? `€${Math.round(price)}` : 'Price soon';
 }
 
-export function formatPrice(value: string | number | null | undefined) {
-  const price = safeNumber(value);
-  return price === null ? 'Price pending' : `€${price.toLocaleString('en-US')}`;
-}
-
-export function splitList(value: string | null | undefined): string[] {
-  if (!value) return [];
-  return value
-    .split(/[,\n;]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+export function safeText(value: string | null | undefined, fallback = 'Coming soon'): string {
+  if (!value || value.trim().length === 0) return fallback;
+  return value;
 }
 
 const demoProducts: Product[] = [
@@ -82,8 +75,6 @@ const demoProducts: Product[] = [
     ram: '12GB',
     storage: '256GB',
     battery_mah: '5000',
-    battery_capacity: '5000mAh',
-    charging_w: '66W',
     rear_camera: 'Triple camera system',
     front_camera: 'High-resolution selfie camera',
     camera_score: 82,
@@ -92,27 +83,30 @@ const demoProducts: Product[] = [
     gaming_score: 78,
     value_score: 84,
     global_score: 84,
-    content_summary_en:
-      'Huawei Nova 15 Max is a large-screen smartphone prepared for AI product intelligence, semantic search, recommendation workflows, and dynamic comparison pages.',
-    pros_en:
-      'Large display, strong battery profile, modern design, good value positioning',
-    cons_en:
-      'Full benchmark data and final pricing still need validation',
-    expert_opinion_en:
-      'A promising large-screen smartphone for users who care about display, battery life, and everyday performance.',
+    content_summary_en: 'A large-screen smartphone prepared for AI product intelligence, semantic search, recommendation workflows, and dynamic comparison pages.',
+    pros_en: 'Large OLED display, strong battery profile, modern design, good value positioning',
+    cons_en: 'Full benchmark data still needs validation, camera details need final confirmation',
+    expert_opinion_en: 'A promising large-screen smartphone for users who care about display, battery life, and everyday performance.',
   },
 ];
 
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnonKey) return null;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 
 export async function getProducts(limit = 12): Promise<Product[]> {
   const supabase = getSupabaseClient();
-  if (!supabase) return demoProducts.slice(0, limit);
+
+  if (!supabase) {
+    return demoProducts.slice(0, limit);
+  }
 
   const { data, error } = await supabase
     .from('products')
@@ -120,19 +114,27 @@ export async function getProducts(limit = 12): Promise<Product[]> {
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (error || !data || data.length === 0) return demoProducts.slice(0, limit);
+  if (error || !data || data.length === 0) {
+    return demoProducts.slice(0, limit);
+  }
+
   return data as Product[];
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const supabase = getSupabaseClient();
+
   if (supabase) {
     const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('slug', slug)
       .maybeSingle();
-    if (!error && data) return data as Product;
+
+    if (!error && data) {
+      return data as Product;
+    }
   }
+
   return demoProducts.find((product) => product.slug === slug) || null;
 }
