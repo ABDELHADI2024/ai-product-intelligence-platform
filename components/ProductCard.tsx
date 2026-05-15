@@ -1,91 +1,58 @@
 import Link from 'next/link';
-import type { Product } from '@/lib/products';
-import { formatPrice, formatScore, safeText } from '@/lib/products';
+import { BatteryCharging, Cpu, MonitorSmartphone, Sparkles } from 'lucide-react';
+import { Product, formatPrice, formatScore, safeText } from '@/lib/products';
 
 type ProductCardProps = {
   product: Product;
 };
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const productName = safeText(product.full_name || product.model, 'Unnamed product');
-  const category = safeText(product.normalized_category || product.product_type, 'Consumer tech');
-  const score = formatScore(product.global_score);
-  const price = formatPrice(product.price_eur);
+  const href = product.slug ? `/products/${product.slug}` : '/products';
 
   return (
-    <article className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-2xl">
-      <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 p-6">
-        <div className="absolute left-4 top-4 rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">
-          AI Score {score}
+    <Link
+      href={href}
+      className="group block overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] shadow-2xl shadow-black/20 backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-cyan-300/40 hover:bg-white/[0.07]"
+    >
+      <div className="relative h-60 overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950/30">
+        <div className="absolute left-4 top-4 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
+          Smartphone
         </div>
-        <div className="flex h-56 items-center justify-center rounded-2xl bg-white/70 p-5">
+        <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-violet-300/20 bg-violet-300/10 px-3 py-1 text-xs font-bold text-violet-200">
+          <Sparkles className="h-3.5 w-3.5" /> {formatScore(product.global_score)}
+        </div>
+        <div className="flex h-full items-center justify-center p-8">
           {product.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={product.image_url}
-              alt={productName}
-              className="max-h-full object-contain transition duration-300 group-hover:scale-105"
+              alt={product.full_name || 'Smartphone'}
+              className="max-h-full object-contain drop-shadow-[0_25px_45px_rgba(0,0,0,0.55)] transition duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="text-sm text-slate-500">No image</div>
+            <MonitorSmartphone className="h-20 w-20 text-slate-700" />
           )}
         </div>
       </div>
 
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-600">
-              {safeText(product.brand, 'Brand')}
-            </p>
-            <h3 className="mt-1 line-clamp-2 text-xl font-bold text-slate-950">
-              {productName}
-            </h3>
-          </div>
-          <div className="rounded-2xl bg-cyan-50 px-3 py-2 text-right">
-            <p className="text-xs text-cyan-700">Price</p>
-            <p className="font-bold text-cyan-950">{price}</p>
-          </div>
+      <div className="p-6">
+        <p className="text-xs uppercase tracking-[0.22em] text-cyan-300">{safeText(product.brand, 'Brand')}</p>
+        <h3 className="mt-2 text-2xl font-black tracking-tight text-white">{safeText(product.full_name || product.model, 'Unnamed product')}</h3>
+        <p className="mt-2 text-lg font-bold text-cyan-100">{formatPrice(product.price_eur)}</p>
+
+        <div className="mt-5 grid gap-3 text-sm text-slate-300">
+          <div className="flex items-center gap-2"><MonitorSmartphone className="h-4 w-4 text-cyan-300" /> {safeText(product.screen_size, 'Display coming soon')}</div>
+          <div className="flex items-center gap-2"><Cpu className="h-4 w-4 text-violet-300" /> {safeText(product.chipset, 'Chipset coming soon')}</div>
+          <div className="flex items-center gap-2"><BatteryCharging className="h-4 w-4 text-emerald-300" /> {product.battery_mah ? `${product.battery_mah}mAh` : 'Battery coming soon'}</div>
         </div>
 
-        <p className="mt-2 text-sm capitalize text-slate-500">{category}</p>
-
-        <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-slate-500">Screen</p>
-            <p className="mt-1 font-semibold text-slate-950">{safeText(product.screen_size, 'Coming soon')}</p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-slate-500">Battery</p>
-            <p className="mt-1 font-semibold text-slate-950">
-              {product.battery_mah ? `${product.battery_mah}mAh` : 'Coming soon'}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-slate-500">Camera</p>
-            <p className="mt-1 font-semibold text-slate-950">{formatScore(product.camera_score)}</p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-slate-500">Value</p>
-            <p className="mt-1 font-semibold text-slate-950">{formatScore(product.value_score)}</p>
-          </div>
-        </div>
-
-        <div className="mt-5 flex gap-3">
-          <Link
-            href={`/products/${product.slug}`}
-            className="flex-1 rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-cyan-600"
-          >
-            View product
-          </Link>
-          <Link
-            href="/compare"
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:text-cyan-700"
-          >
-            Compare
-          </Link>
+        <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">AI verdict</p>
+          <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-300">
+            {product.expert_opinion_en || 'AI product intelligence is ready to enrich this smartphone with scores, recommendations, and comparison insights.'}
+          </p>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }

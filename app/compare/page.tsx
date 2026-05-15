@@ -1,48 +1,44 @@
-import Link from 'next/link';
-import MetricBox from '@/components/MetricBox';
-import { getProducts, safeText } from '@/lib/products';
+import { getProducts, safeText, formatScore, formatPrice } from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ComparePage() {
-  const products = await getProducts(2);
-  const [first, second] = products;
+  const products = await getProducts(4);
 
   return (
-    <main className="mx-auto max-w-7xl px-5 py-12">
-      <div className="mb-10">
-        <p className="text-sm uppercase tracking-wide text-cyan-300">Dynamic comparison</p>
-        <h1 className="mt-2 text-5xl font-bold text-white">Compare products</h1>
-        <p className="mt-4 max-w-3xl text-lg text-slate-300">
-          The first version compares the latest products from Supabase. Later this becomes a full AI comparison engine.
-        </p>
-      </div>
+    <main className="min-h-screen bg-slate-950 text-white">
+      <section className="mx-auto max-w-7xl px-5 py-14">
+        <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">Comparison engine preview</p>
+        <h1 className="mt-3 text-5xl font-black tracking-tight">Compare smartphones</h1>
+        <p className="mt-4 max-w-2xl text-slate-300">This page will become the dynamic comparison system. For now, it previews how Supabase product records can be compared.</p>
 
-      {!first || !second ? (
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-10 text-slate-300">
-          Add at least two products to Supabase to unlock comparisons.
-          <div className="mt-6">
-            <Link className="text-cyan-300" href="/products">
-              View products
-            </Link>
-          </div>
+        <div className="mt-10 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045]">
+          <table className="w-full min-w-[760px] text-left text-sm">
+            <thead className="bg-white/[0.05] text-slate-300">
+              <tr>
+                <th className="p-4">Metric</th>
+                {products.map((product) => <th key={product.id} className="p-4">{safeText(product.model || product.full_name)}</th>)}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/10 text-slate-300">
+              {[
+                ['Price', (p: typeof products[number]) => formatPrice(p.price_eur)],
+                ['Global score', (p: typeof products[number]) => formatScore(p.global_score)],
+                ['Camera score', (p: typeof products[number]) => formatScore(p.camera_score)],
+                ['Battery score', (p: typeof products[number]) => formatScore(p.battery_score)],
+                ['Display', (p: typeof products[number]) => safeText(p.screen_size)],
+                ['Chipset', (p: typeof products[number]) => safeText(p.chipset)],
+                ['Battery', (p: typeof products[number]) => p.battery_mah ? `${p.battery_mah}mAh` : 'Pending'],
+              ].map(([label, getter]) => (
+                <tr key={String(label)}>
+                  <td className="p-4 font-semibold text-white">{String(label)}</td>
+                  {products.map((product) => <td key={product.id} className="p-4">{(getter as (p: typeof product) => string)(product)}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {[first, second].map((product) => (
-            <div key={product.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-              <h2 className="text-3xl font-bold text-white">{safeText(product.full_name)}</h2>
-              <p className="mt-2 text-slate-300">{safeText(product.content_summary_en)}</p>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <MetricBox label="Screen" value={product.screen_size} />
-                <MetricBox label="Chipset" value={product.chipset} />
-                <MetricBox label="Battery" value={product.battery_mah ? `${product.battery_mah}mAh` : null} />
-                <MetricBox label="Global score" value={product.global_score} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      </section>
     </main>
   );
 }
