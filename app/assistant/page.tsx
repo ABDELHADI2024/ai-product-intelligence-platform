@@ -1,60 +1,93 @@
 import Link from 'next/link';
-import { BatteryCharging, Camera, Gamepad2, Sparkles, WalletCards } from 'lucide-react';
+import { BrainCircuit, Camera, BatteryCharging, Cpu, Euro, Sparkles } from 'lucide-react';
 import ProductGrid from '@/components/ProductGrid';
-import { getProducts } from '@/lib/products';
+import { getRecommendedProducts, useCaseLabel } from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
 
-const questions = [
-  { icon: WalletCards, title: 'Budget', text: 'Under €300, €300–€500, €500–€800, or premium?' },
-  { icon: Camera, title: 'Camera priority', text: 'Photos, video, selfie, social media, or balanced use?' },
-  { icon: BatteryCharging, title: 'Battery life', text: 'Daily use, travel, gaming, or heavy multitasking?' },
-  { icon: Gamepad2, title: 'Performance', text: 'Casual apps, gaming, creator use, or long-term speed?' },
+type Props = {
+  searchParams?: Promise<{ useCase?: string; budget?: string; brand?: string }>;
+};
+
+const useCases = [
+  { value: 'balanced', label: 'Balanced', icon: Sparkles },
+  { value: 'camera', label: 'Camera', icon: Camera },
+  { value: 'battery', label: 'Battery', icon: BatteryCharging },
+  { value: 'gaming', label: 'Gaming', icon: Cpu },
+  { value: 'value', label: 'Value', icon: Euro },
 ];
 
-export default async function AssistantPage() {
-  const products = await getProducts(6);
+const budgets = ['300', '500', '800', '1200'];
+
+export default async function AssistantPage({ searchParams }: Props) {
+  const params = searchParams ? await searchParams : {};
+  const useCase = params.useCase || 'balanced';
+  const budget = params.budget || '';
+  const recommendations = await getRecommendedProducts({ useCase, budget });
 
   return (
-    <main className="min-h-screen bg-slate-950 px-5 py-14 text-white">
-      <section className="mx-auto max-w-7xl">
-        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-white/[0.08] to-cyan-300/[0.05] p-8 shadow-2xl shadow-black/20">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-bold text-cyan-200">
-              <Sparkles className="h-4 w-4" /> No-cost guided assistant MVP
-            </div>
-            <h1 className="mt-6 text-5xl font-black">AI Buyer Assistant.</h1>
-            <p className="mt-5 text-lg leading-8 text-slate-300">
-              This is the first version of the Witflag assistant: a guided decision flow that will recommend smartphones using your Supabase scores and product intelligence.
-            </p>
-            <div className="mt-8 flex gap-3">
-              <Link href="/products" className="rounded-2xl bg-cyan-300 px-6 py-4 font-black text-slate-950 hover:bg-white">
-                Browse recommendations
-              </Link>
-              <Link href="/compare" className="rounded-2xl border border-white/10 px-6 py-4 font-bold hover:border-cyan-300/40">
-                Compare phones
-              </Link>
+    <main className="mx-auto max-w-7xl px-5 py-14">
+      <section className="rounded-[2.5rem] border border-white/10 bg-white/[0.04] p-8 md:p-10 card-glow">
+        <div className="flex items-center gap-3 text-cyan-300">
+          <BrainCircuit className="h-7 w-7" />
+          <p className="text-sm font-bold uppercase tracking-[0.28em]">No-cost guided assistant</p>
+        </div>
+        <h1 className="mt-5 text-5xl font-black text-white">Find your smartphone match</h1>
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-300">
+          This first assistant uses your Supabase scores, not paid AI APIs. Choose a budget and priority, then Witflag ranks smartphones by decision signals.
+        </p>
+      </section>
+
+      <form className="mt-10 rounded-[2rem] border border-white/10 bg-slate-950/70 p-6">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <label className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Main priority</label>
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5 lg:grid-cols-3">
+              {useCases.map((item) => {
+                const Icon = item.icon;
+                const active = useCase === item.value;
+                return (
+                  <label key={item.value} className={`cursor-pointer rounded-2xl border p-4 text-center transition ${active ? 'border-cyan-300 bg-cyan-300/10 text-cyan-200' : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]'}`}>
+                    <input type="radio" name="useCase" value={item.value} defaultChecked={active} className="hidden" />
+                    <Icon className="mx-auto h-5 w-5" />
+                    <span className="mt-2 block text-sm font-bold">{item.label}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {questions.map((item) => (
-              <div key={item.title} className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-                <item.icon className="h-8 w-8 text-cyan-300" />
-                <h2 className="mt-5 text-2xl font-black">{item.title}</h2>
-                <p className="mt-3 text-sm leading-6 text-slate-400">{item.text}</p>
-              </div>
-            ))}
+          <div>
+            <label className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Maximum budget</label>
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+              {budgets.map((item) => (
+                <label key={item} className={`cursor-pointer rounded-2xl border p-4 text-center font-black transition ${budget === item ? 'border-cyan-300 bg-cyan-300/10 text-cyan-200' : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]'}`}>
+                  <input type="radio" name="budget" value={item} defaultChecked={budget === item} className="hidden" />
+                  Under €{item}
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="mt-12">
-          <div className="mb-6">
-            <p className="text-sm uppercase tracking-[0.24em] text-cyan-300">Current recommendation pool</p>
-            <h2 className="mt-2 text-4xl font-black">Smartphones ready for guided advice.</h2>
-          </div>
-          <ProductGrid products={products} />
+        <button className="mt-7 rounded-2xl bg-cyan-300 px-6 py-4 font-black text-slate-950 hover:bg-white">Get recommendations</button>
+      </form>
+
+      <section className="mt-12">
+        <div className="mb-7">
+          <p className="text-sm uppercase tracking-[0.28em] text-cyan-300">Recommendation results</p>
+          <h2 className="mt-3 text-4xl font-black text-white">{useCaseLabel(useCase)}</h2>
+          <p className="mt-3 text-slate-400">Ranked from your current AI-ready smartphone dataset.</p>
         </div>
+        <ProductGrid products={recommendations} highlight={useCase as any} />
+      </section>
+
+      <section className="mt-12 rounded-[2rem] border border-white/10 bg-white/[0.04] p-7 text-slate-300">
+        <h2 className="text-2xl font-black text-white">How this assistant works</h2>
+        <p className="mt-4 leading-7">
+          This version is rule-based: it filters by budget and ranks by camera_score, battery_score, gaming_score, value_score or global_score. Later, we can connect semantic search and RAG to make it conversational.
+        </p>
+        <Link href="/products" className="mt-5 inline-block font-bold text-cyan-300 hover:text-white">Explore all smartphones →</Link>
       </section>
     </main>
   );

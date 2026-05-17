@@ -6,11 +6,37 @@
   color-scheme: dark;
 }
 
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background: #050816;
-  color: #f8fafc;
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.14), transparent 34rem),
+    radial-gradient(circle at top right, rgba(129, 140, 248, 0.18), transparent 38rem),
+    linear-gradient(180deg, #020617 0%, #08111f 45%, #020617 100%);
+  color: #e5e7eb;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.35);
+  color: white;
 }
 
 .card-glow {
-  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.14), 0 20px 60px rgba(15, 23, 42, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 30px 80px rgba(8, 47, 73, 0.28);
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #ffffff, #67e8f9, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
