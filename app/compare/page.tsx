@@ -1,33 +1,33 @@
 import CompareTable from '@/components/CompareTable';
+import ProductGrid from '@/components/ProductGrid';
 import { getProducts } from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ComparePage() {
-  const products = (await getProducts(4)).slice(0, 4);
+  const products = await getProducts(12);
+  const compareProducts = products.slice(0, 4);
 
   return (
-    <main className="min-h-screen px-5 py-12 text-white">
-      <section className="mx-auto max-w-7xl">
-        <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8">
-          <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">Dynamic comparison</p>
-          <h1 className="mt-3 text-5xl font-black">Compare smartphones side by side.</h1>
-          <p className="mt-4 max-w-3xl text-slate-300">
-            Compare top smartphones by score, price, display, performance, battery, camera, and value. The next version will allow manual selection and SEO comparison URLs.
-          </p>
-        </div>
+    <main>
+      <section className="page-hero">
+        <span className="eyebrow">Dynamic comparison</span>
+        <h1>Compare smartphones side by side</h1>
+        <p>Start with the top AI-scored smartphones. Later, users will be able to select any 2–4 products.</p>
+      </section>
 
-        <div className="mt-8">
-          <CompareTable products={products} />
-        </div>
+      <section className="section-shell">
+        <CompareTable products={compareProducts} />
+      </section>
 
-        <div className="mt-8 rounded-[2rem] border border-cyan-300/15 bg-cyan-300/5 p-8">
-          <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">AI verdict preview</p>
-          <h2 className="mt-3 text-3xl font-black">Comparison intelligence is the next big layer.</h2>
-          <p className="mt-3 max-w-3xl text-slate-300">
-            Witflag will calculate category winners for camera, battery, gaming, display, value, and final recommendation by buyer persona.
-          </p>
+      <section className="section-shell">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">Add more</span>
+            <h2>Popular smartphones</h2>
+          </div>
         </div>
+        <ProductGrid products={products.slice(4, 12)} />
       </section>
     </main>
   );

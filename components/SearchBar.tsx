@@ -1,21 +1,37 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
 type SearchBarProps = {
   defaultValue?: string;
   placeholder?: string;
-  action?: string;
 };
 
-export default function SearchBar({ defaultValue = '', placeholder = 'Search a smartphone, brand, chipset...', action = '/search' }: SearchBarProps) {
+export default function SearchBar({
+  defaultValue = '',
+  placeholder = 'Search smartphones, brands, chipsets, camera...',
+}: SearchBarProps) {
+  const [query, setQuery] = useState(defaultValue);
+  const router = useRouter();
+
+  function submit() {
+    const clean = query.trim();
+    if (clean) router.push(`/search?q=${encodeURIComponent(clean)}`);
+  }
+
   return (
-    <form action={action} className="flex w-full flex-col gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-2 shadow-2xl shadow-black/20 sm:flex-row">
+    <div className="search-bar">
+      <span>⌕</span>
       <input
-        name="q"
-        defaultValue={defaultValue}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') submit();
+        }}
         placeholder={placeholder}
-        className="min-h-12 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/50"
       />
-      <button className="rounded-xl bg-gradient-to-r from-cyan-300 to-blue-500 px-6 py-3 text-sm font-bold text-slate-950 hover:from-cyan-200 hover:to-blue-400">
-        Smart search
-      </button>
-    </form>
+      <button onClick={submit}>Search</button>
+    </div>
   );
 }

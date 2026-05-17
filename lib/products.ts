@@ -4,60 +4,57 @@ export type Product = {
   id: string;
   brand: string | null;
   model: string | null;
-  full_name: string | null;
   slug: string | null;
   product_type: string | null;
   normalized_category: string | null;
+  full_name: string | null;
+  price_eur: string | number | null;
+  price_usd?: string | number | null;
+  price_mad?: string | number | null;
+  currency?: string | null;
   image_url: string | null;
-  price_eur: number | string | null;
-  price_usd?: number | string | null;
-  price_mad?: number | string | null;
   screen_size: string | null;
+  screen_size_inch?: string | null;
   screen_type: string | null;
   resolution: string | null;
   refresh_rate: string | null;
-  refresh_rate_hz?: string | null;
-  brightness_nits?: string | null;
+  refresh_rate_hz?: string | number | null;
   chipset: string | null;
   gpu?: string | null;
   ram: string | null;
-  ram_gb?: string | null;
+  ram_gb?: string | number | null;
   storage: string | null;
-  storage_gb?: string | null;
+  storage_gb?: string | number | null;
   battery_mah: string | number | null;
   battery_capacity?: string | null;
-  charging_w?: string | null;
+  charging_w?: string | number | null;
   rear_camera: string | null;
-  main_camera_mp?: string | null;
+  main_camera_mp?: string | number | null;
   front_camera: string | null;
-  front_camera_mp?: string | null;
-  camera_score: number | string | null;
-  battery_score: number | string | null;
-  display_score: number | string | null;
-  gaming_score: number | string | null;
-  value_score: number | string | null;
-  global_score: number | string | null;
+  camera_score: string | number | null;
+  battery_score: string | number | null;
+  display_score: string | number | null;
+  gaming_score: string | number | null;
+  value_score: string | number | null;
+  global_score: string | number | null;
   content_summary_en: string | null;
   pros_en: string | null;
   cons_en: string | null;
   expert_opinion_en: string | null;
-  meta_title?: string | null;
-  meta_description?: string | null;
-  project_stage?: string | null;
   created_at?: string | null;
 };
 
-const demoProducts: Product[] = [
+export const demoProducts: Product[] = [
   {
     id: 'demo-huawei-nova-15-max',
     brand: 'Huawei',
     model: 'Nova 15 Max',
-    full_name: 'Huawei Nova 15 Max',
     slug: 'huawei-nova-15-max',
     product_type: 'smartphone',
     normalized_category: 'smartphones',
-    image_url: 'https://fdn2.gsmarena.com/vv/pics/huawei/huawei-nova-15-max-1.jpg',
+    full_name: 'Huawei Nova 15 Max',
     price_eur: 499,
+    image_url: 'https://fdn2.gsmarena.com/vv/pics/huawei/huawei-nova-15-max-1.jpg',
     screen_size: '6.8 inches',
     screen_type: 'OLED',
     resolution: '1224 x 2700 pixels',
@@ -75,73 +72,61 @@ const demoProducts: Product[] = [
     value_score: 84,
     global_score: 84,
     content_summary_en:
-      'Huawei Nova 15 Max is a large-screen smartphone prepared for AI product intelligence, semantic search, recommendation workflows, and dynamic comparison pages.',
-    pros_en:
-      'Large display, strong battery profile, modern design, good value positioning',
-    cons_en:
-      'Full benchmark data and final pricing still need validation',
+      'Huawei Nova 15 Max is a large-screen smartphone prepared for AI product intelligence, semantic search, recommendations, and dynamic comparison workflows.',
+    pros_en: 'Large display, strong battery profile, modern design, good value positioning',
+    cons_en: 'Full benchmark validation still needed, final market pricing may vary',
     expert_opinion_en:
-      'A promising large-screen smartphone for users who care about display, battery life, and everyday performance.',
+      'A strong large-screen smartphone profile for users who want display comfort, battery life, and everyday value.',
   },
 ];
 
-export function safeNumber(value: number | string | null | undefined, fallback = 0): number {
+export function safeNumber(value: unknown, fallback = 0): number {
   if (value === null || value === undefined || value === '') return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-export function safeText(value: string | number | null | undefined, fallback = 'Coming soon'): string {
-  if (value === null || value === undefined || value === '') return fallback;
-  return String(value);
+export function safeText(value: unknown, fallback = 'Coming soon'): string {
+  if (value === null || value === undefined) return fallback;
+  const text = String(value).trim();
+  return text.length > 0 ? text : fallback;
 }
 
-export function formatScore(value: number | string | null | undefined): string {
+export function formatScore(value: unknown): string {
   const score = safeNumber(value, 0);
-  return score > 0 ? String(Math.round(score)) : 'Pending';
+  return score > 0 ? String(Math.round(score)) : '—';
 }
 
-export function formatPrice(value: number | string | null | undefined): string {
-  const price = safeNumber(value, 0);
-  if (price <= 0) return 'Price coming soon';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(price);
+export function formatPrice(product: Pick<Product, 'price_eur' | 'price_usd' | 'price_mad'>): string {
+  const eur = safeNumber(product.price_eur, 0);
+  if (eur > 0) return `€${Math.round(eur)}`;
+
+  const usd = safeNumber(product.price_usd, 0);
+  if (usd > 0) return `$${Math.round(usd)}`;
+
+  const mad = safeNumber(product.price_mad, 0);
+  if (mad > 0) return `${Math.round(mad)} MAD`;
+
+  return 'Price coming soon';
 }
 
 export function splitList(value: string | null | undefined): string[] {
   if (!value) return [];
   return value
-    .split(/[,;|\n]/)
+    .split(/[,;\n]/)
     .map((item) => item.trim())
     .filter(Boolean)
     .slice(0, 6);
 }
 
-export function scoreTone(value: number | string | null | undefined): string {
-  const score = safeNumber(value, 0);
-  if (score >= 85) return 'text-emerald-300 border-emerald-300/40 bg-emerald-300/10';
-  if (score >= 70) return 'text-cyan-300 border-cyan-300/40 bg-cyan-300/10';
-  if (score >= 55) return 'text-amber-300 border-amber-300/40 bg-amber-300/10';
-  return 'text-slate-300 border-white/15 bg-white/[0.04]';
+export function getCategoryLabel(value: string | null | undefined): string {
+  const category = safeText(value, 'smartphones');
+  return category.replaceAll('-', ' ');
 }
 
-export function useCaseLabel(product: Product): string {
-  const camera = safeNumber(product.camera_score);
-  const battery = safeNumber(product.battery_score);
-  const gaming = safeNumber(product.gaming_score);
-  const value = safeNumber(product.value_score);
-  const best = Math.max(camera, battery, gaming, value);
-  if (best === camera) return 'Best for camera';
-  if (best === battery) return 'Best for battery';
-  if (best === gaming) return 'Best for performance';
-  return 'Best value';
-}
-
-export async function getProducts(limit = 24): Promise<Product[]> {
+export async function getProducts(limit = 60): Promise<Product[]> {
   const supabase = getSupabaseClient();
+
   if (!supabase) return demoProducts.slice(0, limit);
 
   const { data, error } = await supabase
@@ -160,6 +145,7 @@ export async function getProducts(limit = 24): Promise<Product[]> {
 
 export async function getLatestProducts(limit = 8): Promise<Product[]> {
   const supabase = getSupabaseClient();
+
   if (!supabase) return demoProducts.slice(0, limit);
 
   const { data, error } = await supabase
@@ -169,7 +155,10 @@ export async function getLatestProducts(limit = 8): Promise<Product[]> {
     .order('created_at', { ascending: false, nullsFirst: false })
     .limit(limit);
 
-  if (error || !data || data.length === 0) return getProducts(limit);
+  if (error || !data || data.length === 0) {
+    return demoProducts.slice(0, limit);
+  }
+
   return data as Product[];
 }
 
@@ -189,49 +178,52 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   return demoProducts.find((product) => product.slug === slug) || null;
 }
 
-export async function searchProducts(query: string, limit = 24): Promise<Product[]> {
-  const trimmed = query.trim();
-  if (!trimmed) return getProducts(limit);
+export async function searchProducts(query: string, limit = 30): Promise<Product[]> {
+  const clean = query.trim();
+  const all = await getProducts(300);
 
-  const supabase = getSupabaseClient();
-  if (!supabase) {
-    return demoProducts.filter((product) =>
-      `${product.brand} ${product.model} ${product.full_name}`
-        .toLowerCase()
-        .includes(trimmed.toLowerCase())
-    );
-  }
+  if (!clean) return all.slice(0, limit);
 
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .in('normalized_category', ['smartphones', 'foldable-smartphones'])
-    .or(
-      `brand.ilike.%${trimmed}%,model.ilike.%${trimmed}%,full_name.ilike.%${trimmed}%,chipset.ilike.%${trimmed}%,content_summary_en.ilike.%${trimmed}%`
-    )
-    .order('global_score', { ascending: false, nullsFirst: false })
-    .limit(limit);
+  const q = clean.toLowerCase();
 
-  if (error || !data) return [];
-  return data as Product[];
+  return all
+    .filter((product) => {
+      const searchable = [
+        product.brand,
+        product.model,
+        product.full_name,
+        product.normalized_category,
+        product.chipset,
+        product.content_summary_en,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchable.includes(q);
+    })
+    .slice(0, limit);
 }
 
-export async function getRecommendations(priority = 'balanced', budget?: number): Promise<Product[]> {
-  const products = await getProducts(96);
-  const filtered = budget ? products.filter((p) => safeNumber(p.price_eur, 0) <= budget || !p.price_eur) : products;
-
-  const scoreKey =
-    priority === 'camera'
-      ? 'camera_score'
-      : priority === 'battery'
-        ? 'battery_score'
-        : priority === 'gaming'
+export function rankProductsForUseCase(products: Product[], useCase: string, budget?: number): Product[] {
+  return [...products]
+    .filter((product) => {
+      if (!budget) return true;
+      const price = safeNumber(product.price_eur, safeNumber(product.price_usd, 0));
+      return price === 0 || price <= budget;
+    })
+    .sort((a, b) => {
+      const key =
+        useCase === 'camera'
+          ? 'camera_score'
+          : useCase === 'battery'
+          ? 'battery_score'
+          : useCase === 'gaming'
           ? 'gaming_score'
-          : priority === 'value'
-            ? 'value_score'
-            : 'global_score';
+          : useCase === 'value'
+          ? 'value_score'
+          : 'global_score';
 
-  return filtered
-    .sort((a, b) => safeNumber(b[scoreKey as keyof Product] as string | number | null) - safeNumber(a[scoreKey as keyof Product] as string | number | null))
-    .slice(0, 6);
+      return safeNumber(b[key as keyof Product]) - safeNumber(a[key as keyof Product]);
+    });
 }
