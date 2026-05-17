@@ -73,6 +73,21 @@ export type RecommendationResult = {
   strengths: string[];
 };
 
+export type SearchIntent = {
+  rawQuery: string;
+  useCase: UseCase;
+  budget: number | null;
+  brand: string | null;
+  category: 'smartphones' | 'foldable-smartphones' | null;
+  explanation: string;
+};
+
+export type SearchResult = {
+  product: Product;
+  matchScore: number;
+  reason: string;
+};
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -226,34 +241,19 @@ export function formatPrice(
     const usd = safeNumber(value.price_usd);
     const mad = safeNumber(value.price_mad);
 
-    if (eur !== null) {
-      return `€${Math.round(eur)}`;
-    }
-
-    if (usd !== null) {
-      return `$${Math.round(usd)}`;
-    }
-
-    if (mad !== null) {
-      return `${Math.round(mad).toLocaleString()} MAD`;
-    }
-
+    if (eur !== null) return `€${Math.round(eur)}`;
+    if (usd !== null) return `$${Math.round(usd)}`;
+    if (mad !== null) return `${Math.round(mad).toLocaleString()} MAD`;
     return 'Price unavailable';
   }
 
   const price = safeNumber(value);
-
-  if (price === null) {
-    return 'Price unavailable';
-  }
-
+  if (price === null) return 'Price unavailable';
   return `€${Math.round(price)}`;
 }
 
 export function splitList(value: string | null | undefined): string[] {
-  if (!value) {
-    return [];
-  }
+  if (!value) return [];
 
   return value
     .split(/[,;\n]/)
@@ -306,30 +306,12 @@ function scoreProduct(product: Product, useCaseInput: string): number {
   const display = safeNumber(product.display_score) || 0;
   const value = safeNumber(product.value_score) || 0;
 
-  if (useCase === 'camera') {
-    return camera * 0.46 + global * 0.22 + display * 0.14 + value * 0.12 + battery * 0.06;
-  }
+  if (useCase === 'camera') return camera * 0.46 + global * 0.22 + display * 0.14 + value * 0.12 + battery * 0.06;
+  if (useCase === 'battery') return battery * 0.46 + global * 0.22 + value * 0.16 + display * 0.08 + gaming * 0.08;
+  if (useCase === 'gaming') return gaming * 0.44 + display * 0.18 + battery * 0.14 + global * 0.18 + value * 0.06;
+  if (useCase === 'value') return value * 0.46 + global * 0.22 + battery * 0.12 + camera * 0.1 + display * 0.1;
 
-  if (useCase === 'battery') {
-    return battery * 0.46 + global * 0.22 + value * 0.16 + display * 0.08 + gaming * 0.08;
-  }
-
-  if (useCase === 'gaming') {
-    return gaming * 0.44 + display * 0.18 + battery * 0.14 + global * 0.18 + value * 0.06;
-  }
-
-  if (useCase === 'value') {
-    return value * 0.46 + global * 0.22 + battery * 0.12 + camera * 0.1 + display * 0.1;
-  }
-
-  return (
-    global * 0.38 +
-    camera * 0.16 +
-    battery * 0.16 +
-    gaming * 0.1 +
-    display * 0.1 +
-    value * 0.1
-  );
+  return global * 0.38 + camera * 0.16 + battery * 0.16 + gaming * 0.1 + display * 0.1 + value * 0.1;
 }
 
 function getStrengths(product: Product): string[] {
@@ -352,21 +334,10 @@ function getRecommendationReason(product: Product, useCaseInput: string, budget?
   const price = safeNumber(product.price_eur);
   const priceLine = budget && price ? ` It fits within the €${budget} budget range.` : '';
 
-  if (useCase === 'camera') {
-    return `${name} is recommended because it has one of the strongest camera profiles in the selected range, while still keeping a solid global score.${priceLine}`;
-  }
-
-  if (useCase === 'battery') {
-    return `${name} is recommended for users who prioritize battery endurance and daily reliability, supported by its battery score and overall balance.${priceLine}`;
-  }
-
-  if (useCase === 'gaming') {
-    return `${name} is a strong match for performance-focused users thanks to its gaming, display, and battery balance.${priceLine}`;
-  }
-
-  if (useCase === 'value') {
-    return `${name} is a strong value pick because it balances price, global score, and practical everyday strengths.${priceLine}`;
-  }
+  if (useCase === 'camera') return `${name} is recommended because it has one of the strongest camera profiles in the selected range, while still keeping a solid global score.${priceLine}`;
+  if (useCase === 'battery') return `${name} is recommended for users who prioritize battery endurance and daily reliability, supported by its battery score and overall balance.${priceLine}`;
+  if (useCase === 'gaming') return `${name} is a strong match for performance-focused users thanks to its gaming, display, and battery balance.${priceLine}`;
+  if (useCase === 'value') return `${name} is a strong value pick because it balances price, global score, and practical everyday strengths.${priceLine}`;
 
   return `${name} is recommended as a balanced smartphone choice across camera, battery, display, gaming, and value signals.${priceLine}`;
 }
@@ -378,10 +349,7 @@ function rankExistingProductsForUseCase(
   limit = 6
 ): Product[] {
   const filtered = products.filter((product) => {
-    if (!budget) {
-      return true;
-    }
-
+    if (!budget) return true;
     const price = safeNumber(product.price_eur);
     return price === null || price <= budget;
   });
@@ -405,12 +373,153 @@ export function buildRecommendations(
   }));
 }
 
+export function detectSearchIntent(query: string): SearchIntent {
+  const rawQuery = query.trim();
+  const lower = rawQuery.toLowerCase();
+
+  let useCase: UseCase = 'balanced';
+  if (/(camera|photo|video|selfie|instagram|tiktok)/i.test(lower)) useCase = 'camera';
+  if (/(battery|autonomy|long lasting|5000mah|charge)/i.test(lower)) useCase = 'battery';
+  if (/(gaming|game|performance|chipset|fps|gpu)/i.test(lower)) useCase = 'gaming';
+  if (/(cheap|budget|value|affordable|under|less than|price)/i.test(lower)) useCase = 'value';
+
+  const budgetMatch = lower.match(/(?:under|below|less than|max|budget)\s*€?\$?(\d{2,5})|€\s?(\d{2,5})|\$\s?(\d{2,5})/);
+  const budget = budgetMatch ? Number(budgetMatch[1] || budgetMatch[2] || budgetMatch[3]) : null;
+
+  const knownBrands = [
+    'apple',
+    'samsung',
+    'xiaomi',
+    'redmi',
+    'poco',
+    'oneplus',
+    'oppo',
+    'vivo',
+    'honor',
+    'huawei',
+    'realme',
+    'google',
+    'motorola',
+    'nothing',
+    'asus',
+    'sony',
+    'nokia',
+    'infinix',
+    'tecno',
+  ];
+
+  const brand = knownBrands.find((item) => lower.includes(item)) || null;
+  const category = lower.includes('fold') ? 'foldable-smartphones' : null;
+
+  const explanationParts = [
+    `${getUseCaseLabel(useCase)} intent`,
+    budget ? `budget under €${budget}` : 'no strict budget detected',
+    brand ? `brand focus: ${brand}` : 'all brands',
+  ];
+
+  return {
+    rawQuery,
+    useCase,
+    budget,
+    brand,
+    category,
+    explanation: explanationParts.join(' · '),
+  };
+}
+
+function keywordScore(product: Product, query: string): number {
+  const lower = query.toLowerCase();
+  const haystack = [
+    product.brand,
+    product.model,
+    product.full_name,
+    product.chipset,
+    product.content_summary_en,
+    product.normalized_category,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (!lower) return 0;
+
+  const terms = lower.split(/\s+/).filter((term) => term.length > 1);
+  return terms.reduce((score, term) => score + (haystack.includes(term) ? 8 : 0), 0);
+}
+
+export function rankSearchResults(products: Product[], intent: SearchIntent): SearchResult[] {
+  return products
+    .filter((product) => {
+      if (intent.budget) {
+        const price = safeNumber(product.price_eur);
+        if (price !== null && price > intent.budget) return false;
+      }
+
+      if (intent.brand && !safeText(product.brand, '').toLowerCase().includes(intent.brand)) {
+        return false;
+      }
+
+      if (intent.category && product.normalized_category !== intent.category) {
+        return false;
+      }
+
+      return true;
+    })
+    .map((product) => {
+      const intelligenceScore = scoreProduct(product, intent.useCase);
+      const textScore = keywordScore(product, intent.rawQuery);
+      const matchScore = Math.round(Math.min(100, intelligenceScore * 0.9 + textScore));
+
+      return {
+        product,
+        matchScore,
+        reason: buildSearchReason(product, intent),
+      };
+    })
+    .sort((a, b) => b.matchScore - a.matchScore);
+}
+
+function buildSearchReason(product: Product, intent: SearchIntent): string {
+  const name = getProductName(product);
+  const useCase = normalizeUseCase(intent.useCase);
+
+  if (useCase === 'camera') {
+    return `${name} ranks well for camera-focused searches because of its camera score, display profile, and global balance.`;
+  }
+
+  if (useCase === 'battery') {
+    return `${name} is relevant for battery-focused searches because of its battery score and daily-use profile.`;
+  }
+
+  if (useCase === 'gaming') {
+    return `${name} matches performance searches thanks to gaming, display, and chipset-related signals.`;
+  }
+
+  if (useCase === 'value') {
+    return `${name} is relevant for value-focused searches because it balances price and overall score.`;
+  }
+
+  return `${name} matches your search using brand, model, specifications, summary, and global product intelligence score.`;
+}
+
+export async function smartSearchProducts(query: string, limit = 24): Promise<{
+  intent: SearchIntent;
+  results: SearchResult[];
+}> {
+  const intent = detectSearchIntent(query);
+  const products = query.trim() ? await searchProducts(query, 120) : await getProducts(120);
+  const ranked = rankSearchResults(products.length ? products : await getProducts(120), intent).slice(0, limit);
+
+  return {
+    intent,
+    results: ranked,
+  };
+}
+
 export async function getProducts(limit = 24): Promise<Product[]> {
   const supabase = getSupabaseClient();
 
-  if (!supabase) {
-    return demoProducts.slice(0, limit);
-  }
+  if (!supabase) return demoProducts.slice(0, limit);
 
   const { data, error } = await supabase
     .from('products')
@@ -419,10 +528,7 @@ export async function getProducts(limit = 24): Promise<Product[]> {
     .order('global_score', { ascending: false, nullsFirst: false })
     .limit(limit);
 
-  if (error || !data || data.length === 0) {
-    return demoProducts.slice(0, limit);
-  }
-
+  if (error || !data || data.length === 0) return demoProducts.slice(0, limit);
   return data as Product[];
 }
 
@@ -436,9 +542,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       .eq('slug', slug)
       .maybeSingle();
 
-    if (!error && data) {
-      return data as Product;
-    }
+    if (!error && data) return data as Product;
   }
 
   return demoProducts.find((product) => product.slug === slug) || null;
@@ -446,10 +550,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
 export async function getProductsBySlugs(slugs: string[]): Promise<Product[]> {
   const cleanSlugs = slugs.map((slug) => slug.trim()).filter(Boolean);
-
-  if (cleanSlugs.length === 0) {
-    return [];
-  }
+  if (cleanSlugs.length === 0) return [];
 
   const supabase = getSupabaseClient();
 
@@ -464,9 +565,7 @@ export async function getProductsBySlugs(slugs: string[]): Promise<Product[]> {
     .select(productColumns)
     .in('slug', cleanSlugs);
 
-  if (error || !data) {
-    return [];
-  }
+  if (error || !data) return [];
 
   const productMap = new Map(
     (data as Product[]).map((product) => [product.slug, product])
@@ -480,9 +579,7 @@ export async function getProductsBySlugs(slugs: string[]): Promise<Product[]> {
 export async function searchProducts(query: string, limit = 24): Promise<Product[]> {
   const cleanQuery = query.trim();
 
-  if (!cleanQuery) {
-    return getProducts(limit);
-  }
+  if (!cleanQuery) return getProducts(limit);
 
   const supabase = getSupabaseClient();
 
@@ -507,16 +604,10 @@ export async function searchProducts(query: string, limit = 24): Promise<Product
     .order('global_score', { ascending: false, nullsFirst: false })
     .limit(limit);
 
-  if (error || !data) {
-    return [];
-  }
-
+  if (error || !data) return [];
   return data as Product[];
 }
 
-// Compatibility overloads:
-// 1. Existing assistant page: rankProductsForUseCase(products, use, budget)
-// 2. Newer usage: await rankProductsForUseCase(use, budget, limit)
 export function rankProductsForUseCase(
   products: Product[],
   useCase: string,
@@ -590,13 +681,8 @@ export function getComparisonVerdict(products: Product[]): ComparisonVerdict {
   const bestDisplay = getWinner(products, 'display_score');
   const bestValue = getWinner(products, 'value_score');
 
-  const overallName = bestOverall
-    ? getProductName(bestOverall)
-    : 'the strongest overall option';
-
-  const valueName = bestValue
-    ? getProductName(bestValue)
-    : 'the best value option';
+  const overallName = bestOverall ? getProductName(bestOverall) : 'the strongest overall option';
+  const valueName = bestValue ? getProductName(bestValue) : 'the best value option';
 
   const summary =
     products.length > 1
