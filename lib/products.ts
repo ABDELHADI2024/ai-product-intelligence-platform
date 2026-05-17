@@ -37,6 +37,8 @@ export type Product = {
   pros_en: string | null;
   cons_en: string | null;
   expert_opinion_en: string | null;
+
+  [key: string]: unknown;
 };
 
 export type UseCase = 'camera' | 'battery' | 'gaming' | 'value' | 'balanced';
@@ -139,39 +141,10 @@ const demoProducts: Product[] = [
   },
 ];
 
-const productColumns = `
-  id,
-  brand,
-  model,
-  full_name,
-  slug,
-  product_type,
-  normalized_category,
-  image_url,
-  price_eur,
-  price_usd,
-  price_mad,
-  screen_size,
-  screen_type,
-  resolution,
-  refresh_rate,
-  chipset,
-  ram,
-  storage,
-  battery_mah,
-  rear_camera,
-  front_camera,
-  camera_score,
-  battery_score,
-  display_score,
-  gaming_score,
-  value_score,
-  global_score,
-  content_summary_en,
-  pros_en,
-  cons_en,
-  expert_opinion_en
-`;
+// IMPORTANT:
+// We use select('*') now to avoid frontend fallback caused by one missing/renamed column.
+// Your Supabase products table already contains many columns, and UI components safely read what they need.
+const productColumns = '*';
 
 export function normalizeUseCase(value: string | null | undefined): UseCase {
   const normalized = String(value || 'balanced').toLowerCase();
@@ -483,43 +456,20 @@ function buildSearchReason(product: Product, intent: SearchIntent): string {
   const name = getProductName(product);
   const useCase = normalizeUseCase(intent.useCase);
 
-  if (useCase === 'camera') {
-    return `${name} ranks well for camera-focused searches because of its camera score, display profile, and global balance.`;
-  }
-
-  if (useCase === 'battery') {
-    return `${name} is relevant for battery-focused searches because of its battery score and daily-use profile.`;
-  }
-
-  if (useCase === 'gaming') {
-    return `${name} matches performance searches thanks to gaming, display, and chipset-related signals.`;
-  }
-
-  if (useCase === 'value') {
-    return `${name} is relevant for value-focused searches because it balances price and overall score.`;
-  }
+  if (useCase === 'camera') return `${name} ranks well for camera-focused searches because of its camera score, display profile, and global balance.`;
+  if (useCase === 'battery') return `${name} is relevant for battery-focused searches because of its battery score and daily-use profile.`;
+  if (useCase === 'gaming') return `${name} matches performance searches thanks to gaming, display, and chipset-related signals.`;
+  if (useCase === 'value') return `${name} is relevant for value-focused searches because it balances price and overall score.`;
 
   return `${name} matches your search using brand, model, specifications, summary, and global product intelligence score.`;
-}
-
-export async function smartSearchProducts(query: string, limit = 24): Promise<{
-  intent: SearchIntent;
-  results: SearchResult[];
-}> {
-  const intent = detectSearchIntent(query);
-  const products = query.trim() ? await searchProducts(query, 120) : await getProducts(120);
-  const ranked = rankSearchResults(products.length ? products : await getProducts(120), intent).slice(0, limit);
-
-  return {
-    intent,
-    results: ranked,
-  };
 }
 
 export async function getProducts(limit = 24): Promise<Product[]> {
   const supabase = getSupabaseClient();
 
-  if (!supabase) return demoProducts.slice(0, limit);
+  if (!supabase) {
+    return demoProducts.slice(0, limit);
+  }
 
   const { data, error } = await supabase
     .from('products')
@@ -528,7 +478,15 @@ export async function getProducts(limit = 24): Promise<Product[]> {
     .order('global_score', { ascending: false, nullsFirst: false })
     .limit(limit);
 
-  if (error || !data || data.length === 0) return demoProducts.slice(0, limit);
+  if (error) {
+    console.error('Supabase getProducts error:', error.message);
+    return [];
+  }
+
+  if (!data || data.length === 0) {
+    return [];
+  }
+
   return data as Product[];
 }
 
@@ -542,7 +500,13 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       .eq('slug', slug)
       .maybeSingle();
 
-    if (!error && data) return data as Product;
+    if (error) {
+      console.error('Supabase getProductBySlug error:', error.message);
+    }
+
+    if (!error && data) {
+      return data as Product;
+    }
   }
 
   return demoProducts.find((product) => product.slug === slug) || null;
@@ -565,7 +529,12 @@ export async function getProductsBySlugs(slugs: string[]): Promise<Product[]> {
     .select(productColumns)
     .in('slug', cleanSlugs);
 
-  if (error || !data) return [];
+  if (error) {
+    console.error('Supabase getProductsBySlugs error:', error.message);
+    return [];
+  }
+
+  if (!data) return [];
 
   const productMap = new Map(
     (data as Product[]).map((product) => [product.slug, product])
@@ -576,36 +545,51 @@ export async function getProductsBySlugs(slugs: string[]): Promise<Product[]> {
     .filter(Boolean) as Product[];
 }
 
-export async function searchProducts(query: string, limit = 24): Promise<Product[]> {
+export async function searchProducts(query: string, limit = 80): Promise<Product[]> {
   const cleanQuery = query.trim();
 
   if (!cleanQuery) return getProducts(limit);
 
-  const supabase = getSupabaseClient();
+  // Safer strategy:
+  // Load enough smartphone products first, then rank/filter in app code.
+  // This avoids Supabase OR syntax issues for natural-language queries.
+  const products = await getProducts(300);
+  const lower = cleanQuery.toLowerCase();
 
-  if (!supabase) {
-    const lower = cleanQuery.toLowerCase();
-    return demoProducts.filter((product) =>
-      [product.brand, product.model, product.full_name, product.chipset]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(lower)
-    );
-  }
+  const filtered = products.filter((product) => {
+    const haystack = [
+      product.brand,
+      product.model,
+      product.full_name,
+      product.chipset,
+      product.content_summary_en,
+      product.normalized_category,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
 
-  const { data, error } = await supabase
-    .from('products')
-    .select(productColumns)
-    .in('normalized_category', ['smartphones', 'foldable-smartphones'])
-    .or(
-      `brand.ilike.%${cleanQuery}%,model.ilike.%${cleanQuery}%,full_name.ilike.%${cleanQuery}%,chipset.ilike.%${cleanQuery}%,content_summary_en.ilike.%${cleanQuery}%`
-    )
-    .order('global_score', { ascending: false, nullsFirst: false })
-    .limit(limit);
+    return lower
+      .split(/\s+/)
+      .filter((term) => term.length > 1)
+      .some((term) => haystack.includes(term));
+  });
 
-  if (error || !data) return [];
-  return data as Product[];
+  return (filtered.length ? filtered : products).slice(0, limit);
+}
+
+export async function smartSearchProducts(query: string, limit = 24): Promise<{
+  intent: SearchIntent;
+  results: SearchResult[];
+}> {
+  const intent = detectSearchIntent(query);
+  const products = await getProducts(300);
+  const ranked = rankSearchResults(products, intent).slice(0, limit);
+
+  return {
+    intent,
+    results: ranked,
+  };
 }
 
 export function rankProductsForUseCase(
