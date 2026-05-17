@@ -1,78 +1,92 @@
 import CompareTable from '@/components/CompareTable';
-import ProductGrid from '@/components/ProductGrid';
-import { getProducts, safeText } from '@/lib/products';
-import Link from 'next/link';
+import ComparisonProductPicker from '@/components/ComparisonProductPicker';
+import { getProducts, getProductsBySlugs, getProductName } from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ComparePage() {
-  const products = await getProducts(12);
-  const compareProducts = products.slice(0, 4);
+type ComparePageProps = {
+  searchParams?: Promise<{
+    phones?: string;
+  }>;
+};
+
+function parseSelectedSlugs(value?: string): string[] {
+  if (!value) {
+    return [];
+  }
+
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+}
+
+export default async function ComparePage({ searchParams }: ComparePageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const selectedSlugs = parseSelectedSlugs(resolvedSearchParams.phones);
+
+  const [popularProducts, selectedProducts] = await Promise.all([
+    getProducts(24),
+    selectedSlugs.length ? getProductsBySlugs(selectedSlugs) : Promise.resolve([]),
+  ]);
+
+  const productsForComparison =
+    selectedProducts.length >= 2 ? selectedProducts : popularProducts.slice(0, 3);
+
+  const activeSlugs =
+    selectedProducts.length >= 2
+      ? selectedProducts.map((product) => product.slug || '').filter(Boolean)
+      : productsForComparison.map((product) => product.slug || '').filter(Boolean);
 
   return (
-    <main>
-      <section className="page-hero">
-        <span className="eyebrow">Side-by-Side Comparison</span>
-        <h1>Compare smartphones in detail</h1>
-        <p>
-          AI scores, key specs and pricing for up to 4 devices side by side. Winners are highlighted automatically.
-        </p>
-      </section>
+    <main className="min-h-screen bg-[#020617] text-white">
+      <section className="border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_38%),radial-gradient(circle_at_top_right,rgba(79,70,229,0.18),transparent_35%)]">
+        <div className="mx-auto max-w-7xl px-5 py-16">
+          <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">
+            Dynamic comparison engine
+          </p>
+          <h1 className="mt-4 max-w-4xl text-5xl font-black tracking-tight md:text-7xl">
+            Compare smartphones with score-based intelligence.
+          </h1>
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            Select up to four smartphones and Witflag will compare global,
+            camera, battery, gaming, display, and value scores with a clear
+            verdict.
+          </p>
 
-      <section className="section-shell" style={{ paddingTop: 24 }}>
-        {/* Compare product heads preview */}
-        <div style={{
-          display: 'flex',
-          gap: 16,
-          marginBottom: 24,
-          padding: '20px 24px',
-          border: '1px solid var(--border)',
-          borderRadius: 18,
-          background: 'var(--panel)',
-          overflowX: 'auto',
-        }}>
-          {compareProducts.map((p) => (
-            <div key={p.id} style={{
-              flex: '0 0 auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '10px 16px',
-              border: '1px solid var(--border-strong)',
-              borderRadius: 12,
-              background: 'rgba(103,232,249,0.04)',
-            }}>
-              {p.image_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.image_url} alt={safeText(p.full_name, 'Phone')} style={{ height: 44, objectFit: 'contain' }} />
-              )}
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  {safeText(p.brand, 'Brand')}
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
-                  {safeText(p.model, 'Phone')}
-                </div>
-              </div>
-              <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: 'var(--cyan)' }}>
-                {p.global_score ?? '—'}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <CompareTable products={compareProducts} />
-      </section>
-
-      <section className="section-shell" style={{ paddingTop: 0 }}>
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">Browse More</span>
-            <h2>Popular smartphones</h2>
+          <div className="mt-8 rounded-3xl border border-cyan-300/15 bg-cyan-300/[0.06] p-5">
+            <p className="text-sm text-slate-300">
+              Current comparison:{' '}
+              <span className="font-semibold text-cyan-200">
+                {productsForComparison.map(getProductName).join(' vs ')}
+              </span>
+            </p>
           </div>
-          <Link href="/products" className="view-all-link">View all →</Link>
         </div>
-        <ProductGrid products={products.slice(4, 12)} />
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 py-10">
+        <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div>
+            <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
+              Select smartphones
+            </p>
+            <h2 className="mt-2 text-3xl font-bold">Choose up to four products</h2>
+          </div>
+          <p className="text-sm text-slate-400">
+            Tip: click a product card to add or remove it from the comparison.
+          </p>
+        </div>
+
+        <ComparisonProductPicker
+          products={popularProducts}
+          selectedSlugs={activeSlugs}
+        />
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 pb-16">
+        <CompareTable products={productsForComparison} />
       </section>
     </main>
   );

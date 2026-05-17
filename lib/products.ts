@@ -1,88 +1,79 @@
-import { getSupabaseClient } from './supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export type Product = {
   id: string;
   brand: string | null;
   model: string | null;
+  full_name: string | null;
   slug: string | null;
   product_type: string | null;
-  type_model?: string | null;
   normalized_category: string | null;
-  full_name: string | null;
-  condition?: string | null;
-  release_year?: number | string | null;
-  release_month?: string | null;
-  stock_status?: string | null;
-  availability?: string | null;
-  price_usd?: number | string | null;
-  price_eur?: number | string | null;
-  price_mad?: number | string | null;
-  price_sar?: number | string | null;
-  price_aed?: number | string | null;
-  currency?: string | null;
   image_url: string | null;
-  video_url?: string | null;
-  screen_size?: string | null;
-  screen_size_inch?: string | null;
-  screen_type?: string | null;
-  resolution?: string | null;
-  refresh_rate?: string | null;
-  refresh_rate_hz?: string | null;
-  brightness_nits?: string | null;
-  screen_protection?: string | null;
-  chipset?: string | null;
-  gpu?: string | null;
-  cpu_cores?: string | null;
-  ram?: string | null;
-  ram_gb?: string | null;
-  storage?: string | null;
-  storage_gb?: string | null;
-  battery_capacity?: string | null;
-  battery_mah?: string | null;
-  fast_charge?: string | null;
-  charging_w?: string | null;
-  rear_camera?: string | null;
-  main_camera_mp?: string | null;
-  front_camera?: string | null;
-  front_camera_mp?: string | null;
-  camera_score?: number | string | null;
-  battery_score?: number | string | null;
-  display_score?: number | string | null;
-  gaming_score?: number | string | null;
-  value_score?: number | string | null;
-  global_score?: number | string | null;
-  score_gaming?: number | string | null;
-  score_battery?: number | string | null;
-  score_photo?: number | string | null;
-  score_screen?: number | string | null;
-  score_value?: number | string | null;
-  compare_score?: number | string | null;
-  content_summary_en?: string | null;
-  content_summary_fr?: string | null;
-  content_summary_ar?: string | null;
-  pros_en?: string | null;
-  cons_en?: string | null;
-  expert_opinion_en?: string | null;
-  faq_en?: string | null;
-  meta_title?: string | null;
-  meta_description?: string | null;
-  is_active?: boolean | null;
-  embedding_ready?: boolean | null;
-  multilingual_ready?: boolean | null;
-  project_stage?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
+
+  price_eur: number | string | null;
+  price_usd?: number | string | null;
+  price_mad?: number | string | null;
+
+  screen_size: string | null;
+  screen_type: string | null;
+  resolution: string | null;
+  refresh_rate: string | null;
+
+  chipset: string | null;
+  ram: string | null;
+  storage: string | null;
+  battery_mah: string | number | null;
+  rear_camera: string | null;
+  front_camera: string | null;
+
+  camera_score: number | string | null;
+  battery_score: number | string | null;
+  display_score: number | string | null;
+  gaming_score: number | string | null;
+  value_score: number | string | null;
+  global_score: number | string | null;
+
+  content_summary_en: string | null;
+  pros_en: string | null;
+  cons_en: string | null;
+  expert_opinion_en: string | null;
 };
 
-type UseCase = 'balanced' | 'camera' | 'battery' | 'gaming' | 'value' | 'display' | string;
+export type ScoreKey =
+  | 'global_score'
+  | 'camera_score'
+  | 'battery_score'
+  | 'display_score'
+  | 'gaming_score'
+  | 'value_score';
 
-type PriceInput =
-  | Product
-  | Pick<Product, 'price_eur' | 'price_usd' | 'price_mad'>
-  | string
-  | number
-  | null
-  | undefined;
+export type WinnerResult = {
+  key: ScoreKey;
+  label: string;
+  winner: Product | null;
+  value: number | null;
+};
+
+export type ComparisonVerdict = {
+  bestOverall: Product | null;
+  bestCamera: Product | null;
+  bestBattery: Product | null;
+  bestGaming: Product | null;
+  bestDisplay: Product | null;
+  bestValue: Product | null;
+  summary: string;
+};
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+function getSupabaseClient() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
 
 const demoProducts: Product[] = [
   {
@@ -95,8 +86,8 @@ const demoProducts: Product[] = [
     normalized_category: 'smartphones',
     image_url: 'https://fdn2.gsmarena.com/vv/pics/huawei/huawei-nova-15-max-1.jpg',
     price_eur: 499,
-    price_usd: 539,
-    price_mad: 5399,
+    price_usd: 549,
+    price_mad: 5490,
     screen_size: '6.8 inches',
     screen_type: 'OLED',
     resolution: '1224 x 2700 pixels',
@@ -121,113 +112,162 @@ const demoProducts: Product[] = [
       'Full benchmark data and final pricing still need validation',
     expert_opinion_en:
       'A promising large-screen smartphone for users who care about display, battery life, and everyday performance.',
-    is_active: true,
   },
 ];
 
-export function safeNumber(value: unknown, fallback = 0): number {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
+const productColumns = `
+  id,
+  brand,
+  model,
+  full_name,
+  slug,
+  product_type,
+  normalized_category,
+  image_url,
+  price_eur,
+  price_usd,
+  price_mad,
+  screen_size,
+  screen_type,
+  resolution,
+  refresh_rate,
+  chipset,
+  ram,
+  storage,
+  battery_mah,
+  rear_camera,
+  front_camera,
+  camera_score,
+  battery_score,
+  display_score,
+  gaming_score,
+  value_score,
+  global_score,
+  content_summary_en,
+  pros_en,
+  cons_en,
+  expert_opinion_en
+`;
+
+export function safeNumber(value: string | number | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
   }
 
-  if (typeof value === 'string') {
-    const cleaned = value.replace(/[^0-9.-]/g, '');
-    const parsed = Number(cleaned);
-    return Number.isFinite(parsed) ? parsed : fallback;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
   }
 
-  return fallback;
+  const parsed = Number(String(value).replace(/[^\d.-]/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function safeText(value: unknown, fallback = 'Coming soon'): string {
-  if (value === null || value === undefined) {
+export function safeText(
+  value: string | number | null | undefined,
+  fallback = 'Coming soon'
+): string {
+  if (value === null || value === undefined || value === '') {
     return fallback;
   }
 
-  const text = String(value).trim();
-  return text.length > 0 ? text : fallback;
+  return String(value);
 }
 
-export function formatScore(value: unknown): string {
-  const score = safeNumber(value, 0);
-  return score > 0 ? `${Math.round(score)}` : 'Pending';
+export function formatScore(value: string | number | null | undefined): string {
+  const score = safeNumber(value);
+
+  if (score === null) {
+    return 'Pending';
+  }
+
+  return `${Math.round(score)}/100`;
 }
 
-export function formatPrice(input: PriceInput): string {
-  if (input === null || input === undefined) {
-    return 'Price coming soon';
+export function formatPrice(
+  value:
+    | Product
+    | string
+    | number
+    | null
+    | undefined
+    | Pick<Product, 'price_eur' | 'price_usd' | 'price_mad'>
+): string {
+  if (value === null || value === undefined) {
+    return 'Price unavailable';
   }
 
-  if (typeof input === 'string' || typeof input === 'number') {
-    const price = safeNumber(input, 0);
-    return price > 0 ? `€${Math.round(price).toLocaleString('en-US')}` : 'Price coming soon';
+  if (typeof value === 'object' && 'price_eur' in value) {
+    const eur = safeNumber(value.price_eur);
+    const usd = safeNumber(value.price_usd);
+    const mad = safeNumber(value.price_mad);
+
+    if (eur !== null) {
+      return `€${Math.round(eur)}`;
+    }
+
+    if (usd !== null) {
+      return `$${Math.round(usd)}`;
+    }
+
+    if (mad !== null) {
+      return `${Math.round(mad).toLocaleString()} MAD`;
+    }
+
+    return 'Price unavailable';
   }
 
-  const eur = safeNumber(input.price_eur, 0);
-  if (eur > 0) return `€${Math.round(eur).toLocaleString('en-US')}`;
+  const price = safeNumber(value);
 
-  const usd = safeNumber(input.price_usd, 0);
-  if (usd > 0) return `$${Math.round(usd).toLocaleString('en-US')}`;
+  if (price === null) {
+    return 'Price unavailable';
+  }
 
-  const mad = safeNumber(input.price_mad, 0);
-  if (mad > 0) return `${Math.round(mad).toLocaleString('en-US')} MAD`;
-
-  return 'Price coming soon';
+  return `€${Math.round(price)}`;
 }
 
 export function splitList(value: string | null | undefined): string[] {
-  if (!value) return [];
+  if (!value) {
+    return [];
+  }
 
   return value
-    .split(/[,;\n•]+/)
+    .split(/[,;\n]/)
     .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 8);
+    .filter(Boolean);
 }
 
 export function getCategoryLabel(category: string | null | undefined): string {
-  const value = safeText(category, 'smartphones');
+  const normalized = safeText(category, '').toLowerCase();
 
   const labels: Record<string, string> = {
-    smartphones: 'Smartphone',
-    'foldable-smartphones': 'Foldable',
-    tablets: 'Tablet',
-    smartwatches: 'Smartwatch',
+    smartphones: 'Smartphones',
+    'foldable-smartphones': 'Foldable Smartphones',
+    tablets: 'Tablets',
+    smartwatches: 'Smartwatches',
     earbuds: 'Earbuds',
   };
 
-  return labels[value] ?? value.replace(/-/g, ' ');
+  return labels[normalized] || safeText(category, 'Smartphones');
 }
 
-function getUseCaseScore(product: Product, useCase: UseCase): number {
-  switch (useCase) {
-    case 'camera':
-      return safeNumber(product.camera_score, 0) * 1.25 + safeNumber(product.global_score, 0) * 0.25;
-    case 'battery':
-      return safeNumber(product.battery_score, 0) * 1.25 + safeNumber(product.global_score, 0) * 0.25;
-    case 'gaming':
-      return safeNumber(product.gaming_score, 0) * 1.15 + safeNumber(product.display_score, 0) * 0.2;
-    case 'value':
-      return safeNumber(product.value_score, 0) * 1.25 + safeNumber(product.global_score, 0) * 0.25;
-    case 'display':
-      return safeNumber(product.display_score, 0) * 1.25 + safeNumber(product.global_score, 0) * 0.25;
-    case 'balanced':
-    default:
-      return safeNumber(product.global_score, 0);
-  }
+export function getProductName(product: Product): string {
+  return product.full_name || [product.brand, product.model].filter(Boolean).join(' ') || 'Smartphone';
 }
 
-function sortByGlobalScore(products: Product[]): Product[] {
-  return [...products].sort(
-    (a, b) => safeNumber(b.global_score, 0) - safeNumber(a.global_score, 0)
-  );
-}
+function scoreProduct(product: Product, useCase: string): number {
+  const global = safeNumber(product.global_score) || 0;
+  const camera = safeNumber(product.camera_score) || 0;
+  const battery = safeNumber(product.battery_score) || 0;
+  const gaming = safeNumber(product.gaming_score) || 0;
+  const display = safeNumber(product.display_score) || 0;
+  const value = safeNumber(product.value_score) || 0;
 
-function normalizeProducts(data: Product[]): Product[] {
-  return data.filter((product) => {
-    const category = product.normalized_category;
-    return category === 'smartphones' || category === 'foldable-smartphones' || !category;
-  });
+  if (useCase === 'camera') return camera * 0.45 + global * 0.25 + display * 0.15 + value * 0.15;
+  if (useCase === 'battery') return battery * 0.45 + global * 0.25 + value * 0.2 + display * 0.1;
+  if (useCase === 'gaming') return gaming * 0.45 + display * 0.2 + battery * 0.15 + global * 0.2;
+  if (useCase === 'value') return value * 0.45 + global * 0.25 + battery * 0.15 + camera * 0.15;
+
+  return global * 0.4 + camera * 0.15 + battery * 0.15 + gaming * 0.1 + display * 0.1 + value * 0.1;
 }
 
 export async function getProducts(limit = 24): Promise<Product[]> {
@@ -237,97 +277,172 @@ export async function getProducts(limit = 24): Promise<Product[]> {
     return demoProducts.slice(0, limit);
   }
 
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .in('normalized_category', ['smartphones', 'foldable-smartphones'])
-      .limit(Math.max(limit, 1));
+  const { data, error } = await supabase
+    .from('products')
+    .select(productColumns)
+    .in('normalized_category', ['smartphones', 'foldable-smartphones'])
+    .order('global_score', { ascending: false, nullsFirst: false })
+    .limit(limit);
 
-    if (error || !data || data.length === 0) {
-      return demoProducts.slice(0, limit);
-    }
-
-    return sortByGlobalScore(normalizeProducts(data as Product[])).slice(0, limit);
-  } catch (error) {
-    console.error('getProducts failed:', error);
+  if (error || !data || data.length === 0) {
     return demoProducts.slice(0, limit);
   }
+
+  return data as Product[];
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const supabase = getSupabaseClient();
 
   if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('slug', slug)
-        .maybeSingle();
+    const { data, error } = await supabase
+      .from('products')
+      .select(productColumns)
+      .eq('slug', slug)
+      .maybeSingle();
 
-      if (!error && data) {
-        return data as Product;
-      }
-    } catch (error) {
-      console.error('getProductBySlug failed:', error);
+    if (!error && data) {
+      return data as Product;
     }
   }
 
   return demoProducts.find((product) => product.slug === slug) || null;
 }
 
-export async function searchProducts(query: string, limit = 40): Promise<Product[]> {
-  const cleanQuery = query.trim().toLowerCase();
-  const products = await getProducts(300);
+export async function getProductsBySlugs(slugs: string[]): Promise<Product[]> {
+  const cleanSlugs = slugs.map((slug) => slug.trim()).filter(Boolean);
 
-  if (!cleanQuery) {
+  if (cleanSlugs.length === 0) {
     return [];
   }
 
-  const tokens = cleanQuery.split(/\s+/).filter(Boolean);
+  const supabase = getSupabaseClient();
 
-  const scored = products
-    .map((product) => {
-      const haystack = [
-        product.brand,
-        product.model,
-        product.full_name,
-        product.normalized_category,
-        product.product_type,
-        product.chipset,
-        product.screen_type,
-        product.ram,
-        product.storage,
-        product.battery_mah,
-        product.content_summary_en,
-      ]
-        .map((part) => safeText(part, '').toLowerCase())
-        .join(' ');
+  if (!supabase) {
+    return demoProducts.filter((product) => product.slug && cleanSlugs.includes(product.slug));
+  }
 
-      const tokenMatches = tokens.filter((token) => haystack.includes(token)).length;
-      const directMatch = haystack.includes(cleanQuery) ? 2 : 0;
-      const score = tokenMatches + directMatch + safeNumber(product.global_score, 0) / 100;
+  const { data, error } = await supabase
+    .from('products')
+    .select(productColumns)
+    .in('slug', cleanSlugs);
 
-      return { product, score };
-    })
-    .filter((item) => item.score > 0.5)
-    .sort((a, b) => b.score - a.score)
-    .map((item) => item.product);
+  if (error || !data) {
+    return [];
+  }
 
-  return scored.slice(0, limit);
+  const productMap = new Map((data as Product[]).map((product) => [product.slug, product]));
+  return cleanSlugs.map((slug) => productMap.get(slug)).filter(Boolean) as Product[];
 }
 
-export function rankProductsForUseCase(
-  products: Product[],
-  useCase: UseCase = 'balanced',
-  maxBudget?: number
-): Product[] {
-  return [...products]
-    .filter((product) => {
-      if (!maxBudget || maxBudget <= 0) return true;
-      const price = safeNumber(product.price_eur, 0);
-      return price > 0 ? price <= maxBudget : true;
-    })
-    .sort((a, b) => getUseCaseScore(b, useCase) - getUseCaseScore(a, useCase));
+export async function searchProducts(query: string, limit = 24): Promise<Product[]> {
+  const cleanQuery = query.trim();
+
+  if (!cleanQuery) {
+    return getProducts(limit);
+  }
+
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
+    const lower = cleanQuery.toLowerCase();
+    return demoProducts.filter((product) =>
+      [product.brand, product.model, product.full_name, product.chipset]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(lower)
+    );
+  }
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(productColumns)
+    .in('normalized_category', ['smartphones', 'foldable-smartphones'])
+    .or(
+      `brand.ilike.%${cleanQuery}%,model.ilike.%${cleanQuery}%,full_name.ilike.%${cleanQuery}%,chipset.ilike.%${cleanQuery}%,content_summary_en.ilike.%${cleanQuery}%`
+    )
+    .order('global_score', { ascending: false, nullsFirst: false })
+    .limit(limit);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as Product[];
+}
+
+export async function rankProductsForUseCase(
+  useCase: 'camera' | 'battery' | 'gaming' | 'value' | 'balanced',
+  budget?: number | null,
+  limit = 6
+): Promise<Product[]> {
+  const products = await getProducts(100);
+
+  const filtered = products.filter((product) => {
+    if (!budget) return true;
+
+    const price = safeNumber(product.price_eur);
+    return price === null || price <= budget;
+  });
+
+  return filtered
+    .sort((a, b) => scoreProduct(b, useCase) - scoreProduct(a, useCase))
+    .slice(0, limit);
+}
+
+export function getWinner(products: Product[], key: ScoreKey): Product | null {
+  const ranked = [...products]
+    .map((product) => ({ product, score: safeNumber(product[key]) }))
+    .filter((item) => item.score !== null)
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
+
+  return ranked[0]?.product || null;
+}
+
+export function getComparisonWinners(products: Product[]): WinnerResult[] {
+  const rows: { key: ScoreKey; label: string }[] = [
+    { key: 'global_score', label: 'Best overall' },
+    { key: 'camera_score', label: 'Best camera' },
+    { key: 'battery_score', label: 'Best battery' },
+    { key: 'display_score', label: 'Best display' },
+    { key: 'gaming_score', label: 'Best gaming' },
+    { key: 'value_score', label: 'Best value' },
+  ];
+
+  return rows.map((row) => {
+    const winner = getWinner(products, row.key);
+    return {
+      ...row,
+      winner,
+      value: winner ? safeNumber(winner[row.key]) : null,
+    };
+  });
+}
+
+export function getComparisonVerdict(products: Product[]): ComparisonVerdict {
+  const bestOverall = getWinner(products, 'global_score');
+  const bestCamera = getWinner(products, 'camera_score');
+  const bestBattery = getWinner(products, 'battery_score');
+  const bestGaming = getWinner(products, 'gaming_score');
+  const bestDisplay = getWinner(products, 'display_score');
+  const bestValue = getWinner(products, 'value_score');
+
+  const overallName = bestOverall ? getProductName(bestOverall) : 'the strongest overall option';
+  const valueName = bestValue ? getProductName(bestValue) : 'the best value option';
+
+  const summary =
+    products.length > 1
+      ? `${overallName} is the strongest overall pick based on the global score. If price/value matters more, ${valueName} deserves special attention. Camera, battery, gaming, and display winners may differ depending on your personal priority.`
+      : 'Select at least two smartphones to generate a more useful comparison verdict.';
+
+  return {
+    bestOverall,
+    bestCamera,
+    bestBattery,
+    bestGaming,
+    bestDisplay,
+    bestValue,
+    summary,
+  };
 }
