@@ -1,15 +1,15 @@
-import { Product } from '@/lib/products';
 import ProductCard from './ProductCard';
+import { Product } from '@/lib/products';
 
-type ProductGridProps = {
-  products: Product[];
-};
+type ProductGridProps = { products: Product[] };
 
 export default function ProductGrid({ products }: ProductGridProps) {
-  if (!products.length) {
+  if (!products || products.length === 0) {
     return (
       <div className="empty-state">
-        <p>No smartphones found yet.</p>
+        <div style={{ fontSize: 48, marginBottom: 14 }}>📱</div>
+        <h3>No products found</h3>
+        <p style={{ marginTop: 8, color: 'var(--muted)' }}>Try adjusting your filters or search query.</p>
       </div>
     );
   }

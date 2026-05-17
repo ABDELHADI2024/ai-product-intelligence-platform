@@ -17,7 +17,10 @@ export default function Header() {
           <Link href="/assistant">AI Assistant</Link>
         </nav>
 
-        <div className="header-pill">EN</div>
+        <div className="header-actions">
+          <Link href="/compare" className="header-cta">Compare →</Link>
+          <span className="header-pill">EN</span>
+        </div>
       </div>
     </header>
   );

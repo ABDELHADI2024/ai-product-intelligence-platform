@@ -6,11 +6,13 @@ import { useState } from 'react';
 type SearchBarProps = {
   defaultValue?: string;
   placeholder?: string;
+  hero?: boolean;
 };
 
 export default function SearchBar({
   defaultValue = '',
-  placeholder = 'Search smartphones, brands, chipsets, camera...',
+  placeholder = 'Search brand, model, chipset, or category...',
+  hero = false,
 }: SearchBarProps) {
   const [query, setQuery] = useState(defaultValue);
   const router = useRouter();
@@ -20,15 +22,15 @@ export default function SearchBar({
     if (clean) router.push(`/search?q=${encodeURIComponent(clean)}`);
   }
 
+  const cls = hero ? 'hero-search' : 'search-bar';
+
   return (
-    <div className="search-bar">
-      <span>⌕</span>
+    <div className={cls}>
+      <span className={hero ? 'hero-search-icon' : ''}>⌕</span>
       <input
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') submit();
-        }}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
         placeholder={placeholder}
       />
       <button onClick={submit}>Search</button>

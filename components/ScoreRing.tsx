@@ -9,22 +9,38 @@ type ScoreRingProps = {
 
 export default function ScoreRing({ value, score, label, size = 'md' }: ScoreRingProps) {
   const finalScore = safeNumber(value ?? score, 0);
-  const percentage = Math.max(0, Math.min(100, finalScore));
-  const color = percentage >= 90 ? '#22c55e' : percentage >= 80 ? '#84cc16' : percentage >= 70 ? '#f59e0b' : '#ef4444';
-  const dimension = size === 'lg' ? 86 : size === 'sm' ? 46 : 62;
+  const pct = Math.max(0, Math.min(100, finalScore));
+
+  const color =
+    pct >= 90 ? '#34d399' :
+    pct >= 80 ? '#67e8f9' :
+    pct >= 70 ? '#fbbf24' :
+    '#f87171';
+
+  const dim = size === 'lg' ? 92 : size === 'sm' ? 48 : 66;
+  const thickness = size === 'lg' ? 8 : size === 'sm' ? 5 : 6;
+  const fontSize = size === 'lg' ? 22 : size === 'sm' ? 14 : 18;
 
   return (
     <div className="score-ring-wrap">
       <div
         className="score-ring"
         style={{
-          width: dimension,
-          height: dimension,
-          background: `conic-gradient(${color} ${percentage * 3.6}deg, rgba(255,255,255,0.08) 0deg)`,
+          width: dim,
+          height: dim,
+          background: `conic-gradient(${color} ${pct * 3.6}deg, rgba(255,255,255,0.06) 0deg)`,
+          boxShadow: pct > 0 ? `0 0 16px ${color}40` : 'none',
         }}
       >
-        <div className="score-ring-core" style={{ width: dimension - 10, height: dimension - 10 }}>
-          {percentage > 0 ? Math.round(percentage) : '—'}
+        <div
+          className="score-ring-core"
+          style={{
+            width: dim - thickness * 2,
+            height: dim - thickness * 2,
+            fontSize,
+          }}
+        >
+          {pct > 0 ? Math.round(pct) : '—'}
         </div>
       </div>
       {label ? <span className="score-ring-label">{label}</span> : null}
