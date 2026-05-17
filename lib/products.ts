@@ -93,6 +93,13 @@ export type SearchResult = {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+export function getSupabaseDebugStatus() {
+  return {
+    hasUrl: Boolean(supabaseUrl),
+    hasAnonKey: Boolean(supabaseAnonKey),
+  };
+}
+
 function getSupabaseClient() {
   if (!supabaseUrl || !supabaseAnonKey) {
     return null;
@@ -101,6 +108,8 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 
+// Keep one fallback only for local/dev safety.
+// Production should show real Supabase data after env vars + RLS are correct.
 const demoProducts: Product[] = [
   {
     id: 'demo-huawei-nova-15-max',
@@ -131,7 +140,7 @@ const demoProducts: Product[] = [
     value_score: 84,
     global_score: 84,
     content_summary_en:
-      'Huawei Nova 15 Max is a large-screen smartphone prepared for AI product intelligence, semantic search, recommendation workflows, and dynamic comparison pages.',
+      'Huawei Nova 15 Max is a demo fallback product used only when Supabase is not reachable.',
     pros_en:
       'Large display, strong battery profile, modern design, good value positioning',
     cons_en:
@@ -141,10 +150,14 @@ const demoProducts: Product[] = [
   },
 ];
 
-// IMPORTANT:
-// We use select('*') now to avoid frontend fallback caused by one missing/renamed column.
-// Your Supabase products table already contains many columns, and UI components safely read what they need.
 const productColumns = '*';
+
+function isSmartphoneProduct(product: Product): boolean {
+  return (
+    product.normalized_category === 'smartphones' ||
+    product.normalized_category === 'foldable-smartphones'
+  );
+}
 
 export function normalizeUseCase(value: string | null | undefined): UseCase {
   const normalized = String(value || 'balanced').toLowerCase();
@@ -162,7 +175,7 @@ export function normalizeUseCase(value: string | null | undefined): UseCase {
   return 'balanced';
 }
 
-export function safeNumber(value: string | number | null | undefined): number | null {
+export function safeNumber(value: string | number | null | undefined | unknown): number | null {
   if (value === null || value === undefined || value === '') {
     return null;
   }
@@ -176,7 +189,7 @@ export function safeNumber(value: string | number | null | undefined): number | 
 }
 
 export function safeText(
-  value: string | number | null | undefined,
+  value: string | number | null | undefined | unknown,
   fallback = 'Coming soon'
 ): string {
   if (value === null || value === undefined || value === '') {
@@ -186,7 +199,7 @@ export function safeText(
   return String(value);
 }
 
-export function formatScore(value: string | number | null | undefined): string {
+export function formatScore(value: string | number | null | undefined | unknown): string {
   const score = safeNumber(value);
 
   if (score === null) {
@@ -464,30 +477,36 @@ function buildSearchReason(product: Product, intent: SearchIntent): string {
   return `${name} matches your search using brand, model, specifications, summary, and global product intelligence score.`;
 }
 
-export async function getProducts(limit = 24): Promise<Product[]> {
+async function fetchAllSmartphoneProducts(): Promise<Product[]> {
   const supabase = getSupabaseClient();
 
   if (!supabase) {
-    return demoProducts.slice(0, limit);
+    console.error('Supabase env vars missing: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+    return demoProducts;
   }
 
   const { data, error } = await supabase
     .from('products')
     .select(productColumns)
     .in('normalized_category', ['smartphones', 'foldable-smartphones'])
-    .order('global_score', { ascending: false, nullsFirst: false })
-    .limit(limit);
+    .order('global_score', { ascending: false, nullsFirst: false });
 
   if (error) {
-    console.error('Supabase getProducts error:', error.message);
-    return [];
+    console.error('Supabase products fetch error:', error.message);
+    return demoProducts;
   }
 
   if (!data || data.length === 0) {
-    return [];
+    console.error('Supabase products fetch returned zero rows.');
+    return demoProducts;
   }
 
-  return data as Product[];
+  return (data as Product[]).filter(isSmartphoneProduct);
+}
+
+export async function getProducts(limit = 24): Promise<Product[]> {
+  const products = await fetchAllSmartphoneProducts();
+  return products.slice(0, limit);
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
@@ -550,10 +569,7 @@ export async function searchProducts(query: string, limit = 80): Promise<Product
 
   if (!cleanQuery) return getProducts(limit);
 
-  // Safer strategy:
-  // Load enough smartphone products first, then rank/filter in app code.
-  // This avoids Supabase OR syntax issues for natural-language queries.
-  const products = await getProducts(300);
+  const products = await fetchAllSmartphoneProducts();
   const lower = cleanQuery.toLowerCase();
 
   const filtered = products.filter((product) => {
@@ -583,7 +599,7 @@ export async function smartSearchProducts(query: string, limit = 24): Promise<{
   results: SearchResult[];
 }> {
   const intent = detectSearchIntent(query);
-  const products = await getProducts(300);
+  const products = await fetchAllSmartphoneProducts();
   const ranked = rankSearchResults(products, intent).slice(0, limit);
 
   return {
@@ -622,9 +638,56 @@ export function rankProductsForUseCase(
   const budget = typeof arg2 === 'number' ? arg2 : null;
   const limit = typeof arg3 === 'number' ? arg3 : 6;
 
-  return getProducts(120).then((products) =>
+  return fetchAllSmartphoneProducts().then((products) =>
     rankExistingProductsForUseCase(products, useCase, budget, limit)
   );
+}
+
+export async function getDebugProductsSample(): Promise<{
+  status: { hasUrl: boolean; hasAnonKey: boolean };
+  count: number;
+  products: Product[];
+  error: string | null;
+}> {
+  const status = getSupabaseDebugStatus();
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
+    return {
+      status,
+      count: 0,
+      products: [],
+      error: 'Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel.',
+    };
+  }
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(productColumns)
+    .in('normalized_category', ['smartphones', 'foldable-smartphones'])
+    .order('global_score', { ascending: false, nullsFirst: false })
+    .limit(20);
+
+  if (error) {
+    return {
+      status,
+      count: 0,
+      products: [],
+      error: error.message,
+    };
+  }
+
+  const { count, error: countError } = await supabase
+    .from('products')
+    .select('id', { count: 'exact', head: true })
+    .in('normalized_category', ['smartphones', 'foldable-smartphones']);
+
+  return {
+    status,
+    count: count || 0,
+    products: (data || []) as Product[],
+    error: countError?.message || null,
+  };
 }
 
 export function getWinner(products: Product[], key: ScoreKey): Product | null {
