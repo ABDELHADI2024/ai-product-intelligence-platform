@@ -66,6 +66,13 @@ export type ComparisonVerdict = {
   summary: string;
 };
 
+export type RecommendationResult = {
+  product: Product;
+  matchScore: number;
+  reason: string;
+  strengths: string[];
+};
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -276,6 +283,20 @@ export function getProductName(product: Product): string {
   );
 }
 
+export function getUseCaseLabel(useCaseInput: string): string {
+  const useCase = normalizeUseCase(useCaseInput);
+
+  const labels: Record<UseCase, string> = {
+    camera: 'Camera-first',
+    battery: 'Battery-first',
+    gaming: 'Gaming-first',
+    value: 'Best value',
+    balanced: 'Balanced',
+  };
+
+  return labels[useCase];
+}
+
 function scoreProduct(product: Product, useCaseInput: string): number {
   const useCase = normalizeUseCase(useCaseInput);
   const global = safeNumber(product.global_score) || 0;
@@ -286,29 +307,68 @@ function scoreProduct(product: Product, useCaseInput: string): number {
   const value = safeNumber(product.value_score) || 0;
 
   if (useCase === 'camera') {
-    return camera * 0.45 + global * 0.25 + display * 0.15 + value * 0.15;
+    return camera * 0.46 + global * 0.22 + display * 0.14 + value * 0.12 + battery * 0.06;
   }
 
   if (useCase === 'battery') {
-    return battery * 0.45 + global * 0.25 + value * 0.2 + display * 0.1;
+    return battery * 0.46 + global * 0.22 + value * 0.16 + display * 0.08 + gaming * 0.08;
   }
 
   if (useCase === 'gaming') {
-    return gaming * 0.45 + display * 0.2 + battery * 0.15 + global * 0.2;
+    return gaming * 0.44 + display * 0.18 + battery * 0.14 + global * 0.18 + value * 0.06;
   }
 
   if (useCase === 'value') {
-    return value * 0.45 + global * 0.25 + battery * 0.15 + camera * 0.15;
+    return value * 0.46 + global * 0.22 + battery * 0.12 + camera * 0.1 + display * 0.1;
   }
 
   return (
-    global * 0.4 +
-    camera * 0.15 +
-    battery * 0.15 +
+    global * 0.38 +
+    camera * 0.16 +
+    battery * 0.16 +
     gaming * 0.1 +
     display * 0.1 +
     value * 0.1
   );
+}
+
+function getStrengths(product: Product): string[] {
+  const scores = [
+    { label: 'camera', score: safeNumber(product.camera_score) },
+    { label: 'battery', score: safeNumber(product.battery_score) },
+    { label: 'display', score: safeNumber(product.display_score) },
+    { label: 'gaming', score: safeNumber(product.gaming_score) },
+    { label: 'value', score: safeNumber(product.value_score) },
+  ]
+    .filter((item) => item.score !== null)
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
+
+  return scores.slice(0, 3).map((item) => `${item.label} ${Math.round(item.score || 0)}/100`);
+}
+
+function getRecommendationReason(product: Product, useCaseInput: string, budget?: number | null): string {
+  const useCase = normalizeUseCase(useCaseInput);
+  const name = getProductName(product);
+  const price = safeNumber(product.price_eur);
+  const priceLine = budget && price ? ` It fits within the €${budget} budget range.` : '';
+
+  if (useCase === 'camera') {
+    return `${name} is recommended because it has one of the strongest camera profiles in the selected range, while still keeping a solid global score.${priceLine}`;
+  }
+
+  if (useCase === 'battery') {
+    return `${name} is recommended for users who prioritize battery endurance and daily reliability, supported by its battery score and overall balance.${priceLine}`;
+  }
+
+  if (useCase === 'gaming') {
+    return `${name} is a strong match for performance-focused users thanks to its gaming, display, and battery balance.${priceLine}`;
+  }
+
+  if (useCase === 'value') {
+    return `${name} is a strong value pick because it balances price, global score, and practical everyday strengths.${priceLine}`;
+  }
+
+  return `${name} is recommended as a balanced smartphone choice across camera, battery, display, gaming, and value signals.${priceLine}`;
 }
 
 function rankExistingProductsForUseCase(
@@ -329,6 +389,20 @@ function rankExistingProductsForUseCase(
   return filtered
     .sort((a, b) => scoreProduct(b, useCase) - scoreProduct(a, useCase))
     .slice(0, limit);
+}
+
+export function buildRecommendations(
+  products: Product[],
+  useCase: string,
+  budget?: number | null,
+  limit = 6
+): RecommendationResult[] {
+  return rankExistingProductsForUseCase(products, useCase, budget, limit).map((product) => ({
+    product,
+    matchScore: Math.round(scoreProduct(product, useCase)),
+    reason: getRecommendationReason(product, useCase, budget),
+    strengths: getStrengths(product),
+  }));
 }
 
 export async function getProducts(limit = 24): Promise<Product[]> {

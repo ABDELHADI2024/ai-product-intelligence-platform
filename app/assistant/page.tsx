@@ -1,133 +1,216 @@
-import ProductGrid from '@/components/ProductGrid';
-import { getProducts, rankProductsForUseCase } from '@/lib/products';
 import Link from 'next/link';
+import { BatteryCharging, Camera, Gamepad2, Gem, SlidersHorizontal, Sparkles } from 'lucide-react';
+import RecommendationCard from '@/components/RecommendationCard';
+import {
+  buildRecommendations,
+  getProducts,
+  getUseCaseLabel,
+  normalizeUseCase,
+} from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
 
 type AssistantPageProps = {
-  searchParams: Promise<{ use?: string; budget?: string }>;
+  searchParams?: Promise<{
+    use?: string;
+    budget?: string;
+  }>;
 };
 
-const useCases = [
-  { key: 'balanced', label: 'Best Overall', icon: '⭐', desc: 'Highest global AI score' },
-  { key: 'camera', label: 'Best Camera', icon: '📸', desc: 'Top camera score' },
-  { key: 'battery', label: 'Best Battery', icon: '🔋', desc: 'Longest battery life' },
-  { key: 'gaming', label: 'Best Gaming', icon: '🎮', desc: 'Fastest chipset & GPU' },
-  { key: 'value', label: 'Best Value', icon: '💰', desc: 'Most for your money' },
+const priorities = [
+  {
+    id: 'balanced',
+    label: 'Balanced',
+    description: 'Strong overall choice across camera, battery, display, gaming, and value.',
+    icon: Sparkles,
+  },
+  {
+    id: 'camera',
+    label: 'Camera',
+    description: 'Prioritize photos, video, social media, and camera experience.',
+    icon: Camera,
+  },
+  {
+    id: 'battery',
+    label: 'Battery',
+    description: 'Prioritize long battery life and reliable daily usage.',
+    icon: BatteryCharging,
+  },
+  {
+    id: 'gaming',
+    label: 'Gaming',
+    description: 'Prioritize performance, display, and sustained power.',
+    icon: Gamepad2,
+  },
+  {
+    id: 'value',
+    label: 'Value',
+    description: 'Prioritize the best score for the money.',
+    icon: Gem,
+  },
 ];
 
 const budgets = [
-  { label: 'Under €200', value: '200' },
-  { label: 'Under €350', value: '350' },
+  { label: 'Any budget', value: '' },
+  { label: 'Under €300', value: '300' },
   { label: 'Under €500', value: '500' },
   { label: 'Under €800', value: '800' },
-  { label: 'Under €1200', value: '1200' },
-  { label: 'No limit', value: '' },
+  { label: 'Premium', value: '1200' },
 ];
 
-export default async function AssistantPage({ searchParams }: AssistantPageProps) {
-  const { use = 'balanced', budget } = await searchParams;
-  const products = await getProducts(300);
-  const recommendations = rankProductsForUseCase(
-    products,
-    use,
-    budget ? Number(budget) : undefined
-  ).slice(0, 6);
+function buildAssistantUrl(use: string, budget?: string) {
+  const params = new URLSearchParams();
+  params.set('use', use);
 
-  const activeCase = useCases.find((u) => u.key === use) ?? useCases[0];
+  if (budget) {
+    params.set('budget', budget);
+  }
+
+  return `/assistant?${params.toString()}`;
+}
+
+export default async function AssistantPage({ searchParams }: AssistantPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const use = normalizeUseCase(resolvedSearchParams.use);
+  const budgetNumber = resolvedSearchParams.budget
+    ? Number(resolvedSearchParams.budget)
+    : null;
+
+  const products = await getProducts(300);
+  const recommendations = buildRecommendations(products, use, budgetNumber, 6);
 
   return (
-    <main>
-      <section className="page-hero">
-        <span className="eyebrow">AI Buyer Assistant</span>
-        <h1>Find the perfect smartphone for your needs</h1>
-        <p>
-          No paid AI API — our assistant ranks {products.length}+ phones using real AI scores.
-          Select your priority and budget to get personalized recommendations.
-        </p>
-      </section>
-
-      <section className="assistant-layout">
-        {/* Sidebar Panel */}
-        <aside className="assistant-panel">
-          <h2>🤖 Smart Finder</h2>
-          <p>Choose your priority and budget. We rank by AI score — no guesswork.</p>
-
-          <div className="assistant-section-title">1. What matters most?</div>
-          <div className="assistant-chips">
-            {useCases.map((uc) => (
-              <Link
-                key={uc.key}
-                href={`/assistant?use=${uc.key}${budget ? `&budget=${budget}` : ''}`}
-                className={`assistant-chip ${use === uc.key ? 'active' : ''}`}
-              >
-                <span className="assistant-chip-icon">{uc.icon}</span>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{uc.label}</div>
-                  <div style={{ fontSize: 11, color: 'var(--soft)' }}>{uc.desc}</div>
-                </div>
-              </Link>
-            ))}
+    <main className="min-h-screen bg-[#020617] text-white">
+      <section className="relative overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.2),transparent_35%),radial-gradient(circle_at_top_right,rgba(79,70,229,0.22),transparent_38%)]">
+        <div className="mx-auto max-w-7xl px-5 py-16 md:py-20">
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-medium text-cyan-200">
+            <Sparkles className="h-4 w-4" />
+            No-cost guided intelligence
           </div>
 
-          <div className="assistant-section-title" style={{ marginTop: 20 }}>2. Your budget</div>
-          <div className="budget-inputs">
-            {budgets.map((b) => (
-              <Link
-                key={b.label}
-                href={`/assistant?use=${use}${b.value ? `&budget=${b.value}` : ''}`}
-                className={`budget-btn ${budget === b.value || (!budget && !b.value) ? 'active' : ''}`}
-              >
-                {b.label}
-              </Link>
-            ))}
-          </div>
+          <h1 className="mt-7 max-w-5xl text-5xl font-black tracking-tight md:text-7xl">
+            Find the right smartphone without confusion.
+          </h1>
 
-          <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--soft)', lineHeight: 1.6 }}>
-            💡 Powered by live Supabase AI scores. No OpenAI or paid API required.
-          </div>
-        </aside>
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            Choose your priority and budget. Witflag ranks smartphones using
+            camera, battery, gaming, display, value, and global scores from your
+            Supabase product intelligence database.
+          </p>
 
-        {/* Results */}
-        <div>
-          <div className="recommendation-mode-banner">
-            <span className="mode-icon">{activeCase.icon}</span>
-            <div>
-              <div className="mode-label">Current mode</div>
-              <div className="mode-value">{activeCase.label}</div>
-            </div>
-            {budget && (
-              <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>Budget</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: 'var(--violet)' }}>≤ €{budget}</div>
+          <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.05] p-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
+                  Current assistant profile
+                </p>
+                <p className="mt-2 text-xl font-bold text-white">
+                  {getUseCaseLabel(use)}
+                  {budgetNumber ? ` · under €${budgetNumber}` : ' · any budget'}
+                </p>
               </div>
-            )}
-            <div style={{ marginLeft: budget ? 0 : 'auto', textAlign: 'right' }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>Results</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: 'var(--cyan)' }}>{recommendations.length} phones</div>
-            </div>
-          </div>
 
-          {recommendations.length > 0 ? (
-            <ProductGrid products={recommendations} />
-          ) : (
-            <div className="empty-state">
-              <h3>No phones match your criteria</h3>
-              <p style={{ marginTop: 8, marginBottom: 24 }}>
-                Try raising your budget or changing your priority filter.
-              </p>
-              <Link href="/assistant" className="primary-button">Reset filters</Link>
-            </div>
-          )}
-
-          <div style={{ marginTop: 28, padding: '20px 24px', border: '1px solid var(--border)', borderRadius: 16, background: 'rgba(8,14,32,0.6)' }}>
-            <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.7 }}>
-              <strong style={{ color: 'var(--text)', display: 'block', marginBottom: 6 }}>How scoring works</strong>
-              Products are ranked by their <strong style={{ color: 'var(--cyan)' }}>{activeCase.label.toLowerCase().replace('best ', '')} score</strong> from our Supabase database.
-              Scores are computed from structured specs including chipset, RAM, battery capacity, camera hardware and value index. Higher = better.
+              <Link
+                href="/products"
+                className="rounded-full border border-white/15 bg-white/[0.05] px-5 py-2.5 text-center text-sm font-semibold hover:bg-white/[0.08]"
+              >
+                Browse full catalog
+              </Link>
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-10 lg:grid-cols-[360px_1fr]">
+        <aside className="h-fit rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/20">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300/10 text-cyan-300">
+              <SlidersHorizontal className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
+                Assistant filters
+              </p>
+              <h2 className="font-bold text-white">Choose your profile</h2>
+            </div>
+          </div>
+
+          <div className="mt-7">
+            <p className="mb-3 text-sm font-semibold text-slate-300">Main priority</p>
+            <div className="space-y-3">
+              {priorities.map((priority) => {
+                const Icon = priority.icon;
+                const active = priority.id === use;
+
+                return (
+                  <Link
+                    key={priority.id}
+                    href={buildAssistantUrl(priority.id, resolvedSearchParams.budget)}
+                    className={`block rounded-2xl border p-4 transition ${
+                      active
+                        ? 'border-cyan-300/50 bg-cyan-300/10'
+                        : 'border-white/10 bg-white/[0.03] hover:border-cyan-300/25'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className={active ? 'h-5 w-5 text-cyan-300' : 'h-5 w-5 text-slate-400'} />
+                      <span className="font-semibold text-white">{priority.label}</span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                      {priority.description}
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <p className="mb-3 text-sm font-semibold text-slate-300">Budget</p>
+            <div className="grid gap-2">
+              {budgets.map((budget) => {
+                const active = (resolvedSearchParams.budget || '') === budget.value;
+                return (
+                  <Link
+                    key={budget.label}
+                    href={buildAssistantUrl(use, budget.value)}
+                    className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                      active
+                        ? 'border-cyan-300/50 bg-cyan-300/10 text-cyan-100'
+                        : 'border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-300/25'
+                    }`}
+                  >
+                    {budget.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </aside>
+
+        <section>
+          <div className="mb-6">
+            <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
+              Top recommendations
+            </p>
+            <h2 className="mt-2 text-3xl font-black text-white">
+              Best matches for your profile
+            </h2>
+            <p className="mt-3 text-slate-400">
+              Recommendations are ranked using a weighted scoring model, not paid AI generation.
+            </p>
+          </div>
+
+          <div className="space-y-5">
+            {recommendations.map((recommendation, index) => (
+              <RecommendationCard
+                key={recommendation.product.id}
+                recommendation={recommendation}
+                rank={index + 1}
+              />
+            ))}
+          </div>
+        </section>
       </section>
     </main>
   );
