@@ -151,6 +151,22 @@ const productColumns = `
   expert_opinion_en
 `;
 
+export function normalizeUseCase(value: string | null | undefined): UseCase {
+  const normalized = String(value || 'balanced').toLowerCase();
+
+  if (
+    normalized === 'camera' ||
+    normalized === 'battery' ||
+    normalized === 'gaming' ||
+    normalized === 'value' ||
+    normalized === 'balanced'
+  ) {
+    return normalized;
+  }
+
+  return 'balanced';
+}
+
 export function safeNumber(value: string | number | null | undefined): number | null {
   if (value === null || value === undefined || value === '') {
     return null;
@@ -260,7 +276,8 @@ export function getProductName(product: Product): string {
   );
 }
 
-function scoreProduct(product: Product, useCase: UseCase): number {
+function scoreProduct(product: Product, useCaseInput: string): number {
+  const useCase = normalizeUseCase(useCaseInput);
   const global = safeNumber(product.global_score) || 0;
   const camera = safeNumber(product.camera_score) || 0;
   const battery = safeNumber(product.battery_score) || 0;
@@ -296,7 +313,7 @@ function scoreProduct(product: Product, useCase: UseCase): number {
 
 function rankExistingProductsForUseCase(
   products: Product[],
-  useCase: UseCase,
+  useCase: string,
   budget?: number | null,
   limit = 6
 ): Product[] {
@@ -424,28 +441,28 @@ export async function searchProducts(query: string, limit = 24): Promise<Product
 }
 
 // Compatibility overloads:
-// 1. Old assistant pages may call: rankProductsForUseCase(products, useCase, budget)
-// 2. Newer code may call: await rankProductsForUseCase(useCase, budget, limit)
+// 1. Existing assistant page: rankProductsForUseCase(products, use, budget)
+// 2. Newer usage: await rankProductsForUseCase(use, budget, limit)
 export function rankProductsForUseCase(
   products: Product[],
-  useCase: UseCase,
+  useCase: string,
   budget?: number | null,
   limit?: number
 ): Product[];
 export function rankProductsForUseCase(
-  useCase: UseCase,
+  useCase: string,
   budget?: number | null,
   limit?: number
 ): Promise<Product[]>;
 export function rankProductsForUseCase(
-  arg1: Product[] | UseCase,
-  arg2?: UseCase | number | null,
+  arg1: Product[] | string,
+  arg2?: string | number | null,
   arg3?: number | null,
   arg4 = 6
 ): Product[] | Promise<Product[]> {
   if (Array.isArray(arg1)) {
     const products = arg1;
-    const useCase = (arg2 || 'balanced') as UseCase;
+    const useCase = typeof arg2 === 'string' ? arg2 : 'balanced';
     const budget = typeof arg3 === 'number' ? arg3 : null;
     const limit = typeof arg4 === 'number' ? arg4 : 6;
 
