@@ -1,46 +1,57 @@
 import { safeNumber } from '@/lib/products';
 
 type ScoreRingProps = {
-  value: number | string | null | undefined;
+  value: string | number | null | undefined;
   label?: string;
   size?: 'sm' | 'md' | 'lg';
 };
 
-export default function ScoreRing({ value, label = 'AI score', size = 'md' }: ScoreRingProps) {
-  const score = Math.max(0, Math.min(100, safeNumber(value, 0)));
-  const radius = size === 'lg' ? 54 : size === 'sm' ? 34 : 44;
-  const stroke = size === 'lg' ? 10 : 8;
-  const dimension = radius * 2 + stroke * 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
+export default function ScoreRing({ value, label = 'Score', size = 'md' }: ScoreRingProps) {
+  const score = safeNumber(value, 0);
+  const radius = size === 'lg' ? 44 : size === 'sm' ? 26 : 34;
+  const stroke = size === 'lg' ? 8 : size === 'sm' ? 5 : 7;
+  const normalizedRadius = radius - stroke * 0.5;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const offset = circumference - (Math.min(score, 100) / 100) * circumference;
+  const box = radius * 2;
+  const textSize = size === 'lg' ? 'text-2xl' : size === 'sm' ? 'text-sm' : 'text-lg';
 
   return (
-    <div className="relative inline-flex items-center justify-center">
-      <svg width={dimension} height={dimension} className="-rotate-90">
-        <circle cx={dimension / 2} cy={dimension / 2} r={radius} stroke="rgba(148,163,184,0.18)" strokeWidth={stroke} fill="none" />
-        <circle
-          cx={dimension / 2}
-          cy={dimension / 2}
-          r={radius}
-          stroke="url(#scoreGradient)"
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-        />
-        <defs>
-          <linearGradient id="scoreGradient" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0%" stopColor="#22d3ee" />
-            <stop offset="50%" stopColor="#818cf8" />
-            <stop offset="100%" stopColor="#a78bfa" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <div className="absolute text-center">
-        <div className="text-xl font-black text-white">{score ? Math.round(score) : '—'}</div>
-        <div className="text-[10px] uppercase tracking-widest text-slate-400">{label}</div>
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative" style={{ width: box, height: box }}>
+        <svg height={box} width={box} className="-rotate-90">
+          <circle
+            stroke="rgba(255,255,255,0.09)"
+            fill="transparent"
+            strokeWidth={stroke}
+            r={normalizedRadius}
+            cx={radius}
+            cy={radius}
+          />
+          <circle
+            stroke="url(#scoreGradient)"
+            fill="transparent"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={offset}
+            r={normalizedRadius}
+            cx={radius}
+            cy={radius}
+          />
+          <defs>
+            <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#22d3ee" />
+              <stop offset="50%" stopColor="#8b5cf6" />
+              <stop offset="100%" stopColor="#22c55e" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className={`${textSize} font-black text-white`}>{score > 0 ? Math.round(score) : '—'}</span>
+        </div>
       </div>
+      <p className="text-center text-xs uppercase tracking-[0.18em] text-slate-400">{label}</p>
     </div>
   );
 }
