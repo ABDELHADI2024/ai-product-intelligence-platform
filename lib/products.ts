@@ -39,6 +39,8 @@ export type Product = {
   expert_opinion_en: string | null;
 };
 
+export type UseCase = 'camera' | 'battery' | 'gaming' | 'value' | 'balanced';
+
 export type ScoreKey =
   | 'global_score'
   | 'camera_score'
@@ -251,10 +253,14 @@ export function getCategoryLabel(category: string | null | undefined): string {
 }
 
 export function getProductName(product: Product): string {
-  return product.full_name || [product.brand, product.model].filter(Boolean).join(' ') || 'Smartphone';
+  return (
+    product.full_name ||
+    [product.brand, product.model].filter(Boolean).join(' ') ||
+    'Smartphone'
+  );
 }
 
-function scoreProduct(product: Product, useCase: string): number {
+function scoreProduct(product: Product, useCase: UseCase): number {
   const global = safeNumber(product.global_score) || 0;
   const camera = safeNumber(product.camera_score) || 0;
   const battery = safeNumber(product.battery_score) || 0;
@@ -262,12 +268,50 @@ function scoreProduct(product: Product, useCase: string): number {
   const display = safeNumber(product.display_score) || 0;
   const value = safeNumber(product.value_score) || 0;
 
-  if (useCase === 'camera') return camera * 0.45 + global * 0.25 + display * 0.15 + value * 0.15;
-  if (useCase === 'battery') return battery * 0.45 + global * 0.25 + value * 0.2 + display * 0.1;
-  if (useCase === 'gaming') return gaming * 0.45 + display * 0.2 + battery * 0.15 + global * 0.2;
-  if (useCase === 'value') return value * 0.45 + global * 0.25 + battery * 0.15 + camera * 0.15;
+  if (useCase === 'camera') {
+    return camera * 0.45 + global * 0.25 + display * 0.15 + value * 0.15;
+  }
 
-  return global * 0.4 + camera * 0.15 + battery * 0.15 + gaming * 0.1 + display * 0.1 + value * 0.1;
+  if (useCase === 'battery') {
+    return battery * 0.45 + global * 0.25 + value * 0.2 + display * 0.1;
+  }
+
+  if (useCase === 'gaming') {
+    return gaming * 0.45 + display * 0.2 + battery * 0.15 + global * 0.2;
+  }
+
+  if (useCase === 'value') {
+    return value * 0.45 + global * 0.25 + battery * 0.15 + camera * 0.15;
+  }
+
+  return (
+    global * 0.4 +
+    camera * 0.15 +
+    battery * 0.15 +
+    gaming * 0.1 +
+    display * 0.1 +
+    value * 0.1
+  );
+}
+
+function rankExistingProductsForUseCase(
+  products: Product[],
+  useCase: UseCase,
+  budget?: number | null,
+  limit = 6
+): Product[] {
+  const filtered = products.filter((product) => {
+    if (!budget) {
+      return true;
+    }
+
+    const price = safeNumber(product.price_eur);
+    return price === null || price <= budget;
+  });
+
+  return filtered
+    .sort((a, b) => scoreProduct(b, useCase) - scoreProduct(a, useCase))
+    .slice(0, limit);
 }
 
 export async function getProducts(limit = 24): Promise<Product[]> {
@@ -319,7 +363,9 @@ export async function getProductsBySlugs(slugs: string[]): Promise<Product[]> {
   const supabase = getSupabaseClient();
 
   if (!supabase) {
-    return demoProducts.filter((product) => product.slug && cleanSlugs.includes(product.slug));
+    return demoProducts.filter(
+      (product) => product.slug && cleanSlugs.includes(product.slug)
+    );
   }
 
   const { data, error } = await supabase
@@ -331,8 +377,13 @@ export async function getProductsBySlugs(slugs: string[]): Promise<Product[]> {
     return [];
   }
 
-  const productMap = new Map((data as Product[]).map((product) => [product.slug, product]));
-  return cleanSlugs.map((slug) => productMap.get(slug)).filter(Boolean) as Product[];
+  const productMap = new Map(
+    (data as Product[]).map((product) => [product.slug, product])
+  );
+
+  return cleanSlugs
+    .map((slug) => productMap.get(slug))
+    .filter(Boolean) as Product[];
 }
 
 export async function searchProducts(query: string, limit = 24): Promise<Product[]> {
@@ -372,23 +423,42 @@ export async function searchProducts(query: string, limit = 24): Promise<Product
   return data as Product[];
 }
 
-export async function rankProductsForUseCase(
-  useCase: 'camera' | 'battery' | 'gaming' | 'value' | 'balanced',
+// Compatibility overloads:
+// 1. Old assistant pages may call: rankProductsForUseCase(products, useCase, budget)
+// 2. Newer code may call: await rankProductsForUseCase(useCase, budget, limit)
+export function rankProductsForUseCase(
+  products: Product[],
+  useCase: UseCase,
   budget?: number | null,
-  limit = 6
-): Promise<Product[]> {
-  const products = await getProducts(100);
+  limit?: number
+): Product[];
+export function rankProductsForUseCase(
+  useCase: UseCase,
+  budget?: number | null,
+  limit?: number
+): Promise<Product[]>;
+export function rankProductsForUseCase(
+  arg1: Product[] | UseCase,
+  arg2?: UseCase | number | null,
+  arg3?: number | null,
+  arg4 = 6
+): Product[] | Promise<Product[]> {
+  if (Array.isArray(arg1)) {
+    const products = arg1;
+    const useCase = (arg2 || 'balanced') as UseCase;
+    const budget = typeof arg3 === 'number' ? arg3 : null;
+    const limit = typeof arg4 === 'number' ? arg4 : 6;
 
-  const filtered = products.filter((product) => {
-    if (!budget) return true;
+    return rankExistingProductsForUseCase(products, useCase, budget, limit);
+  }
 
-    const price = safeNumber(product.price_eur);
-    return price === null || price <= budget;
-  });
+  const useCase = arg1;
+  const budget = typeof arg2 === 'number' ? arg2 : null;
+  const limit = typeof arg3 === 'number' ? arg3 : 6;
 
-  return filtered
-    .sort((a, b) => scoreProduct(b, useCase) - scoreProduct(a, useCase))
-    .slice(0, limit);
+  return getProducts(120).then((products) =>
+    rankExistingProductsForUseCase(products, useCase, budget, limit)
+  );
 }
 
 export function getWinner(products: Product[], key: ScoreKey): Product | null {
@@ -412,6 +482,7 @@ export function getComparisonWinners(products: Product[]): WinnerResult[] {
 
   return rows.map((row) => {
     const winner = getWinner(products, row.key);
+
     return {
       ...row,
       winner,
@@ -428,8 +499,13 @@ export function getComparisonVerdict(products: Product[]): ComparisonVerdict {
   const bestDisplay = getWinner(products, 'display_score');
   const bestValue = getWinner(products, 'value_score');
 
-  const overallName = bestOverall ? getProductName(bestOverall) : 'the strongest overall option';
-  const valueName = bestValue ? getProductName(bestValue) : 'the best value option';
+  const overallName = bestOverall
+    ? getProductName(bestOverall)
+    : 'the strongest overall option';
+
+  const valueName = bestValue
+    ? getProductName(bestValue)
+    : 'the best value option';
 
   const summary =
     products.length > 1
