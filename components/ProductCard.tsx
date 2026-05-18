@@ -1,56 +1,85 @@
 import Link from 'next/link';
+import { ArrowRight, BatteryCharging, Camera, Cpu, Sparkles } from 'lucide-react';
+import { formatPrice, getProductName, Product, safeText } from '@/lib/products';
 import ScoreRing from './ScoreRing';
-import { formatPrice, getCategoryLabel, Product, safeText } from '@/lib/products';
 
-type ProductCardProps = { product: Product };
+type ProductCardProps = {
+  product: Product;
+};
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const name = safeText(
-    product.full_name,
-    `${safeText(product.brand, '')} ${safeText(product.model, '')}`.trim()
-  );
+  const name = getProductName(product);
 
   return (
-    <Link href={`/products/${product.slug}`} className="product-card">
-      <div className="product-card-image">
-        <div className="product-card-category">
-          {getCategoryLabel(product.normalized_category)}
+    <article className="group glow-border overflow-hidden rounded-[2rem] bg-white/[0.045] p-4 shadow-2xl shadow-black/25 transition duration-300 hover:-translate-y-1">
+      <div className="relative flex h-64 items-center justify-center rounded-[1.5rem] border border-white/10 bg-slate-950/80 p-5">
+        <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
+          <Sparkles className="h-3.5 w-3.5" />
+          AI scored
         </div>
-        <div className="product-card-score">
-          <ScoreRing value={product.global_score} size="sm" />
-        </div>
+
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.image_url} alt={name} />
+          <img
+            src={product.image_url}
+            alt={name}
+            className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-105"
+          />
         ) : (
-          <div className="phone-placeholder">📱</div>
+          <div className="text-sm text-slate-600">No image</div>
         )}
       </div>
 
-      <div className="product-card-body">
-        <p className="product-brand">{safeText(product.brand, 'Brand')}</p>
-        <h3>{name}</h3>
+      <div className="p-2 pt-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-cyan-300">
+              {safeText(product.brand, 'Smartphone')}
+            </p>
+            <h3 className="mt-2 line-clamp-2 text-xl font-black text-white">{name}</h3>
+            <p className="mt-2 font-semibold text-cyan-100">{formatPrice(product)}</p>
+          </div>
+          <ScoreRing value={product.global_score} label="Score" size="sm" />
+        </div>
 
-        <div className="mini-metrics">
-          <div className="mini-metric">
-            <strong>{safeText(product.camera_score, '—')}</strong>
-            <span>Camera</span>
+        <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-400">
+          {safeText(product.content_summary_en, 'AI-ready smartphone profile prepared for search, comparison, and recommendations.')}
+        </p>
+
+        <div className="mt-5 grid grid-cols-3 gap-2 text-xs">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-slate-300">
+            <Camera className="mb-2 h-4 w-4 text-cyan-300" />
+            {safeText(product.camera_score, '—')}
           </div>
-          <div className="mini-metric">
-            <strong>{safeText(product.battery_score, '—')}</strong>
-            <span>Battery</span>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-slate-300">
+            <BatteryCharging className="mb-2 h-4 w-4 text-cyan-300" />
+            {safeText(product.battery_score, '—')}
           </div>
-          <div className="mini-metric">
-            <strong>{safeText(product.value_score, '—')}</strong>
-            <span>Value</span>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-slate-300">
+            <Cpu className="mb-2 h-4 w-4 text-cyan-300" />
+            {safeText(product.gaming_score, '—')}
           </div>
         </div>
 
-        <div className="product-card-meta">
-          <span className="product-price-tag">{formatPrice(product)}</span>
-          <span>{safeText(product.battery_mah, '—')}mAh</span>
+        <div className="mt-5 flex gap-3">
+          {product.slug ? (
+            <Link
+              href={`/products/${product.slug}`}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-cyan-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-300"
+            >
+              View
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : null}
+
+          <Link
+            href={`/compare?phones=${product.slug || ''}`}
+            className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-semibold text-white hover:bg-white/[0.1]"
+          >
+            Compare
+          </Link>
         </div>
       </div>
-    </Link>
+    </article>
   );
 }

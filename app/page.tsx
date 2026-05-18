@@ -1,191 +1,130 @@
 import Link from 'next/link';
+import { ArrowRight, BatteryCharging, Camera, Gamepad2, GitCompare, Search, Sparkles, Trophy } from 'lucide-react';
 import ProductGrid from '@/components/ProductGrid';
-import SearchBar from '@/components/SearchBar';
-import ScoreRing from '@/components/ScoreRing';
-import { getProducts, rankProductsForUseCase } from '@/lib/products';
+import { getProducts } from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  const all = await getProducts(300);
-  const topRated = all.slice(0, 8);
-  const topCamera = rankProductsForUseCase(all, 'camera').slice(0, 4);
-  const topBattery = rankProductsForUseCase(all, 'battery').slice(0, 4);
-  const topValue = rankProductsForUseCase(all, 'value').slice(0, 4);
-  const heroPhones = all.slice(0, 3);
+  const products = await getProducts(6);
+
+  const stats = [
+    ['296', 'AI-ready smartphones'],
+    ['6', 'decision scores'],
+    ['0 API', 'no-cost assistant'],
+    ['SEO', 'buying guides'],
+  ];
+
+  const useCases = [
+    { icon: Camera, label: 'Best camera phones', href: '/best/best-camera-phones' },
+    { icon: BatteryCharging, label: 'Best battery phones', href: '/best/best-battery-phones' },
+    { icon: Gamepad2, label: 'Best gaming phones', href: '/best/best-gaming-phones' },
+    { icon: Trophy, label: 'Best value phones', href: '/best/best-value-phones' },
+  ];
 
   return (
-    <main>
-      {/* HERO */}
-      <section className="hero-section">
-        <div className="hero-glow hero-glow-one" />
-        <div className="hero-glow hero-glow-two" />
-        <div className="hero-glow hero-glow-three" />
-
-        <div className="hero-grid">
+    <main className="min-h-screen bg-[#020617] text-white">
+      <section className="premium-shell border-b border-white/10">
+        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
           <div>
-            <span className="eyebrow">AI Smartphone Intelligence Platform</span>
-            <h1>
-              Make smarter phone decisions with{' '}
-              <span className="grad">AI-scored intelligence</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-200">
+              <Sparkles className="h-4 w-4" />
+              AI Smartphone Intelligence Platform
+            </div>
+
+            <h1 className="mt-7 max-w-5xl text-5xl font-black tracking-tight md:text-7xl">
+              Choose the right smartphone with product intelligence.
             </h1>
-            <p className="hero-subtitle">
-              We analyze, score and rank every smartphone across 5 AI signals —
-              camera, battery, display, gaming and value — so you buy with confidence.
+
+            <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+              Witflag turns structured smartphone data into search, comparison,
+              recommendations, buying guides, and AI-style decisions without
+              requiring paid AI APIs for the MVP.
             </p>
 
-            <SearchBar hero placeholder="Search brand, model, chipset, price range..." />
+            <form action="/search" className="mt-8 flex max-w-3xl flex-col gap-3 rounded-[2rem] border border-white/10 bg-white/[0.06] p-3 shadow-2xl shadow-black/20 md:flex-row">
+              <div className="flex flex-1 items-center gap-3 px-3">
+                <Search className="h-5 w-5 text-cyan-300" />
+                <input
+                  name="q"
+                  placeholder="Search: best camera phone under 500..."
+                  className="w-full bg-transparent py-3 text-white outline-none placeholder:text-slate-500"
+                />
+              </div>
+              <button className="rounded-full bg-cyan-400 px-7 py-3 font-bold text-slate-950 hover:bg-cyan-300">
+                Search
+              </button>
+            </form>
 
-            <div className="hero-stats">
-              <div className="hero-stat">
-                <strong>{all.length}+</strong>
-                <span>Smartphones</span>
-              </div>
-              <div className="hero-stat">
-                <strong>5</strong>
-                <span>AI Score Signals</span>
-              </div>
-              <div className="hero-stat">
-                <strong>Live</strong>
-                <span>Supabase Data</span>
-              </div>
-              <div className="hero-stat">
-                <strong>Free</strong>
-                <span>Guided Assistant</span>
-              </div>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link href="/assistant" className="inline-flex items-center gap-2 rounded-full bg-cyan-400 px-6 py-3 font-bold text-slate-950 hover:bg-cyan-300">
+                Start assistant <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/compare" className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] px-6 py-3 font-bold text-white hover:bg-white/[0.08]">
+                Compare phones <GitCompare className="h-4 w-4" />
+              </Link>
             </div>
           </div>
 
-          <div className="hero-visual-wrap">
-            <div className="hero-device-card">
-              <div className="device-grid-lines" />
-              <div className="device-orbit-outer" />
-              <div className="device-orbit-inner" />
-              <div className="hero-phone-stack">
-                {heroPhones.map((p) => (
-                  <div key={p.id} className="floating-phone">
-                    {p.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.image_url} alt={p.full_name || 'Phone'} />
-                    ) : (
-                      <div className="phone-placeholder">📱</div>
-                    )}
+          <div className="glass-card rounded-[2.5rem] p-5">
+            <div className="rounded-[2rem] border border-white/10 bg-slate-950/70 p-6">
+              <p className="text-sm uppercase tracking-[0.28em] text-cyan-300">Live intelligence system</p>
+              <div className="mt-6 grid grid-cols-2 gap-4">
+                {stats.map(([value, label]) => (
+                  <div key={label} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                    <p className="text-3xl font-black text-white">{value}</p>
+                    <p className="mt-2 text-sm text-slate-400">{label}</p>
                   </div>
                 ))}
               </div>
-              {heroPhones[0] && (
-                <div className="hero-score-badge">
-                  <ScoreRing value={heroPhones[0].global_score} size="sm" />
-                  <div>
-                    <div style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Global AI Score</div>
-                    <strong style={{ color: 'var(--cyan)', fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800 }}>
-                      {heroPhones[0].global_score ?? '—'}
-                    </strong>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* TOP RATED */}
-      <section className="section-shell">
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">Top Rated</span>
-            <h2>Highest AI-scored smartphones</h2>
-          </div>
-          <Link href="/products" className="view-all-link">View all →</Link>
-        </div>
-        <ProductGrid products={topRated} />
-      </section>
-
-      {/* AI TRUST STRIP */}
-      <section className="section-shell" style={{ paddingTop: 0 }}>
-        <div className="trust-strip">
-          {([
-            ['📸', 'Camera Score', 'Photo & video quality and versatility'],
-            ['🔋', 'Battery Score', 'Capacity, charging speed & longevity'],
-            ['🖥️', 'Display Score', 'Screen type, refresh rate & brightness'],
-            ['🎮', 'Gaming Score', 'Chipset power & thermal performance'],
-            ['💰', 'Value Score', 'Price-to-specification intelligence'],
-          ] as const).map(([icon, title, text]) => (
-            <div key={title} className="trust-item">
-              <div className="trust-icon">{icon}</div>
-              <strong>{title}</strong>
-              <span>{text}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* BEST CAMERA */}
-      <section className="section-shell" style={{ paddingTop: 0 }}>
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">Category Pick</span>
-            <h2>📸 Camera Champions</h2>
-          </div>
-          <Link href="/assistant?use=camera" className="view-all-link">See all →</Link>
-        </div>
-        <ProductGrid products={topCamera} />
-      </section>
-
-      {/* BATTERY + VALUE */}
-      <section className="section-shell" style={{ paddingTop: 0 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40 }}>
-          <div>
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">Category Pick</span>
-                <h2>🔋 Battery Life</h2>
+              <div className="mt-5 rounded-3xl border border-cyan-300/15 bg-cyan-300/[0.06] p-5">
+                <p className="text-sm text-slate-300">
+                  The platform reads your Supabase database, ranks products,
+                  detects user intent, and creates decision pages.
+                </p>
               </div>
-              <Link href="/assistant?use=battery" className="view-all-link">All →</Link>
             </div>
-            <ProductGrid products={topBattery} />
-          </div>
-          <div>
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow">Category Pick</span>
-                <h2>💰 Best Value</h2>
-              </div>
-              <Link href="/assistant?use=value" className="view-all-link">All →</Link>
-            </div>
-            <ProductGrid products={topValue} />
           </div>
         </div>
       </section>
 
-      {/* CTA CARDS */}
-      <section className="section-shell" style={{ paddingTop: 0 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <Link href="/assistant" style={{
-            display: 'flex', alignItems: 'center', gap: 20,
-            padding: '32px 28px',
-            border: '1px solid var(--border-strong)', borderRadius: 22,
-            background: 'linear-gradient(135deg, rgba(103,232,249,0.07), rgba(60,165,250,0.04))',
-          }}>
-            <span style={{ fontSize: 42 }}>🤖</span>
-            <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, marginBottom: 6 }}>AI Buyer Assistant</div>
-              <div style={{ color: 'var(--muted)', fontSize: 14 }}>Answer a few questions. Get your perfect match, ranked by AI scores.</div>
-            </div>
-          </Link>
-          <Link href="/compare" style={{
-            display: 'flex', alignItems: 'center', gap: 20,
-            padding: '32px 28px',
-            border: '1px solid var(--border)', borderRadius: 22,
-            background: 'linear-gradient(135deg, rgba(167,139,250,0.06), rgba(8,14,32,0.5))',
-          }}>
-            <span style={{ fontSize: 42 }}>⚖️</span>
-            <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, marginBottom: 6 }}>Side-by-Side Compare</div>
-              <div style={{ color: 'var(--muted)', fontSize: 14 }}>Compare up to 4 smartphones across all specs and AI scores instantly.</div>
-            </div>
+      <section className="mx-auto max-w-7xl px-5 py-12">
+        <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div>
+            <p className="text-sm uppercase tracking-[0.28em] text-cyan-300">Decision shortcuts</p>
+            <h2 className="mt-3 text-4xl font-black text-white">Start from your real need.</h2>
+          </div>
+          <Link href="/best" className="text-sm font-bold text-cyan-300 hover:text-cyan-200">
+            View all guides →
           </Link>
         </div>
+
+        <div className="grid gap-4 md:grid-cols-4">
+          {useCases.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.href} href={item.href} className="glass-card rounded-[2rem] p-5 transition hover:-translate-y-1 hover:border-cyan-300/30">
+                <Icon className="h-7 w-7 text-cyan-300" />
+                <h3 className="mt-4 font-bold text-white">{item.label}</h3>
+                <p className="mt-2 text-sm text-slate-400">Ranked using Witflag scores.</p>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 pb-16">
+        <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div>
+            <p className="text-sm uppercase tracking-[0.28em] text-cyan-300">Top ranked</p>
+            <h2 className="mt-3 text-4xl font-black text-white">Live smartphones from Supabase.</h2>
+          </div>
+          <Link href="/products" className="text-sm font-bold text-cyan-300 hover:text-cyan-200">
+            View catalog →
+          </Link>
+        </div>
+
+        <ProductGrid products={products} />
       </section>
     </main>
   );

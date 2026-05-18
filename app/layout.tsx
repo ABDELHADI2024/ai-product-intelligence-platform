@@ -4,11 +4,16 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Witflag AI | Smartphone Intelligence Platform',
-  description: 'AI-native smartphone product intelligence — scores, comparisons, search, and guided recommendations.',
+  title: 'Witflag — AI Smartphone Intelligence Platform',
+  description:
+    'AI-native smartphone intelligence platform for product search, comparisons, recommendations, scores, and buying guides.',
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en">
       <body>
