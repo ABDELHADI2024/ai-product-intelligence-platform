@@ -1,82 +1,91 @@
 import Link from 'next/link';
-import { ArrowRight, BatteryCharging, Camera, Cpu, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { formatPrice, getProductName, Product, safeText } from '@/lib/products';
 import ScoreRing from './ScoreRing';
 
-type ProductCardProps = {
-  product: Product;
-};
+type Props = { product: Product };
 
-export default function ProductCard({ product }: ProductCardProps) {
+function ScoreCell({ value, label, color }: { value?: number | null; label: string; color?: string }) {
+  return (
+    <div className="score-cell">
+      <div className="sv" style={color ? { color } : undefined}>{value ?? '—'}</div>
+      <div className="sl">{label}</div>
+    </div>
+  );
+}
+
+export default function ProductCard({ product }: Props) {
   const name = getProductName(product);
 
   return (
-    <article className="group glow-border overflow-hidden rounded-[2rem] bg-white/[0.045] p-4 shadow-2xl shadow-black/25 transition duration-300 hover:-translate-y-1">
-      <div className="relative flex h-64 items-center justify-center rounded-[1.5rem] border border-white/10 bg-slate-950/80 p-5">
-        <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
-          <Sparkles className="h-3.5 w-3.5" />
-          AI scored
-        </div>
-
+    <article className="pcard gring">
+      {/* Image area */}
+      <div className="pcard-img">
+        <span className="tag tag-v" style={{ position: 'absolute', top: '.6rem', left: '.6rem', fontSize: '.6rem' }}>
+          ✦ AI scored
+        </span>
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={product.image_url}
             alt={name}
-            className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-105"
+            style={{
+              maxHeight: '100%',
+              maxWidth: '100%',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 8px 24px rgba(0,0,0,.6))',
+              transition: 'transform .3s',
+            }}
+            className="group-hover:scale-105"
           />
         ) : (
-          <div className="text-sm text-slate-600">No image</div>
+          <div style={{ fontSize: '3rem' }}>📱</div>
         )}
       </div>
 
-      <div className="p-2 pt-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-cyan-300">
-              {safeText(product.brand, 'Smartphone')}
-            </p>
-            <h3 className="mt-2 line-clamp-2 text-xl font-black text-white">{name}</h3>
-            <p className="mt-2 font-semibold text-cyan-100">{formatPrice(product)}</p>
+      {/* Body */}
+      <div className="pcard-body">
+        {/* Brand + name + price + ring */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '.5rem' }}>
+          <div style={{ minWidth: 0 }}>
+            <div className="pcard-brand">{safeText(product.brand, 'Smartphone')}</div>
+            <div className="pcard-name line-clamp-2">{name}</div>
+            <div className="pcard-price" style={{ marginTop: '.35rem' }}>{formatPrice(product)}</div>
           </div>
-          <ScoreRing value={product.global_score} label="Score" size="sm" />
+          <ScoreRing value={product.global_score} size="sm" label="Global Score" />
         </div>
 
-        <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-400">
-          {safeText(product.content_summary_en, 'AI-ready smartphone profile prepared for search, comparison, and recommendations.')}
+        {/* Summary */}
+        <p style={{ fontSize: '.72rem', color: '#a89ec9', lineHeight: 1.55, marginTop: '.25rem' }} className="line-clamp-2">
+          {safeText(product.content_summary_en, 'AI-scored product with full intelligence signals for comparison and recommendations.')}
         </p>
 
-        <div className="mt-5 grid grid-cols-3 gap-2 text-xs">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-slate-300">
-            <Camera className="mb-2 h-4 w-4 text-cyan-300" />
-            {safeText(product.camera_score, '—')}
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-slate-300">
-            <BatteryCharging className="mb-2 h-4 w-4 text-cyan-300" />
-            {safeText(product.battery_score, '—')}
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-slate-300">
-            <Cpu className="mb-2 h-4 w-4 text-cyan-300" />
-            {safeText(product.gaming_score, '—')}
-          </div>
+        {/* 5-score grid */}
+        <div className="scores-5" style={{ marginTop: '.35rem' }}>
+          <ScoreCell value={product.camera_score}      label="Camera"  color="#22d3ee" />
+          <ScoreCell value={product.battery_score}     label="Battery" color="#a78bfa" />
+          <ScoreCell value={product.display_score}     label="Display" color="#4ade80" />
+          <ScoreCell value={product.gaming_score}      label="Gaming"  color="#fbbf24" />
+          <ScoreCell value={product.value_score}       label="Value"   color="#6366f1" />
         </div>
 
-        <div className="mt-5 flex gap-3">
-          {product.slug ? (
+        {/* CTA */}
+        <div style={{ display: 'flex', gap: '.5rem', marginTop: 'auto', paddingTop: '.5rem' }}>
+          {product.slug && (
             <Link
               href={`/products/${product.slug}`}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-cyan-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-300"
+              className="btn-primary"
+              style={{ flex: 1, justifyContent: 'center', borderRadius: 10, fontSize: '.75rem', padding: '.5rem .5rem' }}
             >
-              View
-              <ArrowRight className="h-4 w-4" />
+              View Details <ArrowRight size={13} />
             </Link>
-          ) : null}
-
+          )}
           <Link
             href={`/compare?phones=${product.slug || ''}`}
-            className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-semibold text-white hover:bg-white/[0.1]"
+            className="btn-ghost"
+            style={{ borderRadius: 10, fontSize: '.75rem', padding: '.5rem .85rem' }}
           >
-            Compare
+            ⚖
           </Link>
         </div>
       </div>

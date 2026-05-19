@@ -1,110 +1,75 @@
-import { safeNumber } from '@/lib/products';
+'use client';
 
 type ScoreRingProps = {
-  value?: string | number | null;
-  score?: string | number | null;
-  label?: string;
+  value?: number | null;
   size?: 'sm' | 'md' | 'lg';
+  label?: string;
 };
 
-export default function ScoreRing({
-  value,
-  score,
-  label = 'Score',
-  size = 'md',
-}: ScoreRingProps) {
-  const parsedScore = safeNumber(value ?? score);
-  const finalScore = parsedScore ?? 0;
-  const pct = Math.max(0, Math.min(100, finalScore));
+const SIZES = {
+  sm: { outer: 44, r: 17, sw: 3.5, fontSize: '.75rem' },
+  md: { outer: 60, r: 23, sw: 4,   fontSize: '.9rem'  },
+  lg: { outer: 72, r: 28, sw: 5,   fontSize: '1.05rem' },
+};
 
-  const dimensions = {
-    sm: {
-      box: 'h-20 w-20',
-      svg: 72,
-      radius: 28,
-      stroke: 6,
-      text: 'text-lg',
-      label: 'text-[10px]',
-    },
-    md: {
-      box: 'h-28 w-28',
-      svg: 104,
-      radius: 42,
-      stroke: 8,
-      text: 'text-2xl',
-      label: 'text-xs',
-    },
-    lg: {
-      box: 'h-36 w-36',
-      svg: 132,
-      radius: 54,
-      stroke: 10,
-      text: 'text-4xl',
-      label: 'text-sm',
-    },
-  }[size];
-
-  const circumference = 2 * Math.PI * dimensions.radius;
-  const offset = circumference - (pct / 100) * circumference;
+export default function ScoreRing({ value, size = 'md', label }: ScoreRingProps) {
+  const score = value ?? 0;
+  const { outer, r, sw, fontSize } = SIZES[size];
+  const circ  = 2 * Math.PI * r;
+  const dash  = Math.min(Math.max(score / 100, 0), 1) * circ;
+  const id    = `sg-${r}-${score}`;
 
   const color =
-    pct >= 85
-      ? 'stroke-emerald-300'
-      : pct >= 75
-        ? 'stroke-cyan-300'
-        : pct >= 65
-          ? 'stroke-amber-300'
-          : 'stroke-slate-400';
-
-  const glow =
-    pct >= 85
-      ? 'shadow-emerald-500/20'
-      : pct >= 75
-        ? 'shadow-cyan-500/20'
-        : pct >= 65
-          ? 'shadow-amber-500/20'
-          : 'shadow-slate-500/10';
+    score >= 90 ? '#22d3ee' :
+    score >= 80 ? '#a78bfa' :
+    score >= 70 ? '#6366f1' : '#4a4168';
 
   return (
-    <div
-      className={`relative flex ${dimensions.box} items-center justify-center rounded-full bg-white/[0.04] shadow-2xl ${glow}`}
-      aria-label={`${label}: ${Math.round(pct)} out of 100`}
-    >
-      <svg
-        width={dimensions.svg}
-        height={dimensions.svg}
-        viewBox={`0 0 ${dimensions.svg} ${dimensions.svg}`}
-        className="-rotate-90"
-      >
-        <circle
-          cx={dimensions.svg / 2}
-          cy={dimensions.svg / 2}
-          r={dimensions.radius}
-          fill="none"
-          stroke="rgba(255,255,255,0.10)"
-          strokeWidth={dimensions.stroke}
-        />
-        <circle
-          cx={dimensions.svg / 2}
-          cy={dimensions.svg / 2}
-          r={dimensions.radius}
-          fill="none"
-          className={color}
-          strokeWidth={dimensions.stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-        />
-      </svg>
-
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <p className={`${dimensions.text} font-black text-white`}>
-          {parsedScore === null ? '—' : Math.round(pct)}
-        </p>
-        <p className={`${dimensions.label} font-medium uppercase tracking-[0.2em] text-slate-400`}>
-          {label}
-        </p>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+      <div style={{ position: 'relative', width: outer, height: outer, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg
+          width={outer}
+          height={outer}
+          viewBox={`0 0 ${outer} ${outer}`}
+          style={{ transform: 'rotate(-90deg)', position: 'absolute', inset: 0 }}
+        >
+          <defs>
+            <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stopColor="#22d3ee" />
+              <stop offset="100%" stopColor="#7c3aed" />
+            </linearGradient>
+          </defs>
+          <circle
+            cx={outer / 2} cy={outer / 2} r={r}
+            fill="none"
+            stroke="rgba(124,58,237,.18)"
+            strokeWidth={sw}
+          />
+          <circle
+            cx={outer / 2} cy={outer / 2} r={r}
+            fill="none"
+            stroke={`url(#${id})`}
+            strokeWidth={sw}
+            strokeDasharray={`${dash} ${circ}`}
+            strokeLinecap="round"
+          />
+        </svg>
+        <span
+          style={{
+            fontFamily: 'Syne, sans-serif',
+            fontWeight: 900,
+            fontSize,
+            color: '#fff',
+            position: 'relative',
+            zIndex: 1,
+          }}
+        >
+          {score || '—'}
+        </span>
       </div>
+      {label && (
+        <span style={{ fontSize: '.6rem', color: '#4a4168', fontWeight: 500 }}>{label}</span>
+      )}
     </div>
   );
 }
