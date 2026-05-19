@@ -5,10 +5,35 @@ import ScoreRing from './ScoreRing';
 
 type Props = { product: Product };
 
-function ScoreCell({ value, label, color }: { value?: number | null; label: string; color?: string }) {
+function toNumber(value: string | number | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  const parsed = Number(String(value).replace(/[^\d.-]/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function ScoreCell({
+  value,
+  label,
+  color,
+}: {
+  value?: string | number | null;
+  label: string;
+  color?: string;
+}) {
+  const parsedValue = toNumber(value);
+
   return (
     <div className="score-cell">
-      <div className="sv" style={color ? { color } : undefined}>{value ?? '—'}</div>
+      <div className="sv" style={color ? { color } : undefined}>
+        {parsedValue === null ? '—' : Math.round(parsedValue)}
+      </div>
       <div className="sl">{label}</div>
     </div>
   );
@@ -62,11 +87,11 @@ export default function ProductCard({ product }: Props) {
 
         {/* 5-score grid */}
         <div className="scores-5" style={{ marginTop: '.35rem' }}>
-          <ScoreCell value={product.camera_score}      label="Camera"  color="#22d3ee" />
-          <ScoreCell value={product.battery_score}     label="Battery" color="#a78bfa" />
-          <ScoreCell value={product.display_score}     label="Display" color="#4ade80" />
-          <ScoreCell value={product.gaming_score}      label="Gaming"  color="#fbbf24" />
-          <ScoreCell value={product.value_score}       label="Value"   color="#6366f1" />
+          <ScoreCell value={product.camera_score} label="Camera" color="#22d3ee" />
+          <ScoreCell value={product.battery_score} label="Battery" color="#a78bfa" />
+          <ScoreCell value={product.display_score} label="Display" color="#4ade80" />
+          <ScoreCell value={product.gaming_score} label="Gaming" color="#fbbf24" />
+          <ScoreCell value={product.value_score} label="Value" color="#6366f1" />
         </div>
 
         {/* CTA */}
