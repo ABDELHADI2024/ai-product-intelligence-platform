@@ -10,15 +10,35 @@ import {
 import ScoreRing from './ScoreRing';
 
 type RecommendationCardProps = {
-  recommendation: RecommendationResult;
+  recommendation?: RecommendationResult;
+  product?: Product;
   rank?: number;
 };
 
 export default function RecommendationCard({
   recommendation,
+  product,
   rank = 1,
 }: RecommendationCardProps) {
-  const { product, matchScore, reason, strengths } = recommendation;
+  const targetProduct = recommendation?.product || product;
+
+  if (!targetProduct) {
+    return null;
+  }
+
+  const matchScore = recommendation?.matchScore ?? targetProduct.global_score;
+  const reason =
+    recommendation?.reason ||
+    safeText(
+      targetProduct.expert_opinion_en,
+      'Recommended based on Witflag smartphone intelligence scores.'
+    );
+
+  const strengths = recommendation?.strengths || [
+    `Camera ${safeText(targetProduct.camera_score, '—')}`,
+    `Battery ${safeText(targetProduct.battery_score, '—')}`,
+    `Value ${safeText(targetProduct.value_score, '—')}`,
+  ];
 
   return (
     <article className="group overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/20 transition hover:-translate-y-1 hover:border-cyan-300/30">
@@ -33,11 +53,11 @@ export default function RecommendationCard({
 
       <div className="mt-5 grid gap-5 md:grid-cols-[150px_1fr]">
         <div className="flex h-44 items-center justify-center rounded-3xl bg-slate-950/80 p-4">
-          {product.image_url ? (
+          {targetProduct.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={product.image_url}
-              alt={getProductName(product)}
+              src={targetProduct.image_url}
+              alt={getProductName(targetProduct)}
               className="max-h-full object-contain transition group-hover:scale-105"
             />
           ) : (
@@ -47,15 +67,15 @@ export default function RecommendationCard({
 
         <div>
           <p className="text-sm uppercase tracking-[0.22em] text-cyan-300">
-            {safeText(product.brand, 'Smartphone')}
+            {safeText(targetProduct.brand, 'Smartphone')}
           </p>
 
           <h3 className="mt-2 text-2xl font-black text-white">
-            {getProductName(product)}
+            {getProductName(targetProduct)}
           </h3>
 
           <p className="mt-2 font-semibold text-cyan-100">
-            {formatPrice(product)}
+            {formatPrice(targetProduct)}
           </p>
 
           <p className="mt-4 text-sm leading-6 text-slate-300">{reason}</p>
@@ -72,9 +92,9 @@ export default function RecommendationCard({
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            {product.slug ? (
+            {targetProduct.slug ? (
               <Link
-                href={`/products/${product.slug}`}
+                href={`/products/${targetProduct.slug}`}
                 className="inline-flex items-center gap-2 rounded-full bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-300"
               >
                 View details
@@ -83,7 +103,7 @@ export default function RecommendationCard({
             ) : null}
 
             <Link
-              href={`/compare?phones=${product.slug || ''}`}
+              href={`/compare?phones=${targetProduct.slug || ''}`}
               className="rounded-full border border-white/15 bg-white/[0.05] px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/[0.08]"
             >
               Compare

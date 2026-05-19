@@ -42,12 +42,18 @@ export default function SEOProductRow({
           <p className="text-sm uppercase tracking-[0.22em] text-cyan-300">
             {safeText(product.brand, 'Smartphone')}
           </p>
+
           <h3 className="mt-2 text-2xl font-black text-white">
             {getProductName(product)}
           </h3>
+
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-            {safeText(product.content_summary_en, 'A smartphone ranked by Witflag product intelligence signals.')}
+            {safeText(
+              product.content_summary_en,
+              'A smartphone ranked by Witflag product intelligence signals.'
+            )}
           </p>
+
           <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-300">
             <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1">
               {formatPrice(product)}
@@ -59,6 +65,7 @@ export default function SEOProductRow({
               {safeText(product.chipset, 'Chipset coming soon')}
             </span>
           </div>
+
           {product.slug ? (
             <Link
               href={`/products/${product.slug}`}

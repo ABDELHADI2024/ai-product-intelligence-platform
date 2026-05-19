@@ -1,11 +1,6 @@
 import Link from 'next/link';
-import { ArrowRight, BatteryCharging, Camera, Cpu, Sparkles } from 'lucide-react';
-import {
-  formatPrice,
-  getProductName,
-  SearchResult,
-  safeText,
-} from '@/lib/products';
+import { ArrowRight, BatteryCharging, Camera, Cpu } from 'lucide-react';
+import { formatPrice, getProductName, SearchResult, safeText } from '@/lib/products';
 import ScoreRing from './ScoreRing';
 
 type SearchResultCardProps = {
