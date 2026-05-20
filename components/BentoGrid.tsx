@@ -1,13 +1,13 @@
-import React from 'react';
-import type { Product } from '@/lib/products';
-import ProductCard from './ProductCard';
+import React from 'react'
+import type { Product } from '@/lib/products'
+import ProductCard from './ProductCard'
 
 type BentoGridProps = {
-  children?: React.ReactNode;
-  className?: string;
-  columns?: 2 | 3 | 4;
-  products?: Product[];
-};
+  children?: React.ReactNode
+  className?: string
+  columns?: 2 | 3 | 4
+  products?: Product[]
+}
 
 export default function BentoGrid({
   children,
@@ -17,20 +17,22 @@ export default function BentoGrid({
 }: BentoGridProps) {
   const columnClass =
     columns === 4
-      ? 'xl:grid-cols-4'
+      ? 'bento-grid-4'
       : columns === 2
-        ? 'xl:grid-cols-2'
-        : 'xl:grid-cols-3';
+        ? 'bento-grid-2'
+        : 'bento-grid-3'
 
   return (
-    <div
-      className={`grid w-full grid-cols-1 gap-6 md:grid-cols-2 ${columnClass} ${className}`}
-    >
+    <div className={`bento-grid ${columnClass} ${className}`}>
       {products
-        ? products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+        ? products.map((product, index) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              rank={index + 1}
+            />
           ))
         : children}
     </div>
-  );
+  )
 }
