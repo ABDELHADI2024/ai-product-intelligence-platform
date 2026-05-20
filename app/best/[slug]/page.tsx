@@ -1,224 +1,179 @@
-import Link from 'next/link';
-import { Trophy } from 'lucide-react';
-import ProductGrid from '@/components/ProductGrid';
-import { getProducts, safeNumber, Product } from '@/lib/products';
+import type { Metadata } from 'next'
+import { getProducts, safeNumber } from '@/lib/products'
+import type { Product } from '@/lib/products'
+import ProductGrid from '@/components/ProductGrid'
+import Link from 'next/link'
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600
 
-type BestSlugPageProps = { params: Promise<{ slug: string }> };
+type Props = { params: Promise<{ slug: string }> }
 
-/* ──────────────────────────────────────────────
-   Config map: slug → display metadata + sort key
-────────────────────────────────────────────── */
-interface GuideConfig {
-  title: string;
-  eyebrow: string;
-  description: string;
-  badge: string;
-  sortKey: keyof Product;
-  maxPrice?: number;
-}
-
-const GUIDE_MAP: Record<string, GuideConfig> = {
+const GUIDE_CONFIG: Record<string, {
+  title: string
+  sub: string
+  icon: string
+  scoreKey: keyof Product
+  description: string
+  faqItems: { q: string; a: string }[]
+}> = {
   'best-camera-phones': {
     title: 'Best Camera Phones',
-    eyebrow: 'Camera Intelligence',
-    description:
-      'Smartphones ranked by camera score, image potential, display quality, and global product intelligence.',
-    badge: 'Camera',
-    sortKey: 'camera_score',
+    sub: 'Ranked by Witflag camera scores.',
+    icon: '📸',
+    scoreKey: 'camera_score',
+    description: 'These smartphones rank highest for camera quality based on Witflag structured product intelligence scores.',
+    faqItems: [
+      { q: 'What makes a good camera phone?', a: 'High megapixel count, optical zoom, night mode, and video stabilization all contribute to camera quality.' },
+      { q: 'How are camera scores calculated?', a: 'Witflag camera scores are derived from structured product data including sensor specs, software capabilities, and lens configurations.' },
+    ],
   },
   'best-battery-phones': {
     title: 'Best Battery Phones',
-    eyebrow: 'Battery Intelligence',
-    description:
-      'Find smartphones with strong battery scores, endurance potential, and daily reliability signals.',
-    badge: 'Battery',
-    sortKey: 'battery_score',
+    sub: 'Ranked by Witflag battery scores.',
+    icon: '🔋',
+    scoreKey: 'battery_score',
+    description: 'Top smartphones for all-day battery life, ranked by Witflag battery scores.',
+    faqItems: [
+      { q: 'What is a good battery capacity?', a: 'Generally 5000 mAh or above provides all-day usage for most users.' },
+      { q: 'Does fast charging affect battery health?', a: 'Modern fast charging is designed to minimize degradation, but very high wattage charging can affect long-term battery health.' },
+    ],
   },
   'best-gaming-phones': {
     title: 'Best Gaming Phones',
-    eyebrow: 'Gaming Intelligence',
-    description:
-      'Performance-first smartphones ranked by gaming score, chipset signals, display, and battery balance.',
-    badge: 'Gaming',
-    sortKey: 'gaming_score',
+    sub: 'Ranked by Witflag gaming scores.',
+    icon: '🎮',
+    scoreKey: 'gaming_score',
+    description: 'Top smartphones for mobile gaming, ranked by processing power, display refresh rate, and thermal performance.',
+    faqItems: [
+      { q: 'What specs matter for gaming phones?', a: 'Chipset performance, high refresh rate displays (120Hz+), cooling systems, and RAM are the key factors.' },
+      { q: 'Are gaming phones good for everyday use?', a: 'Yes — the performance advantages of gaming phones benefit all tasks, not just games.' },
+    ],
   },
   'best-value-phones': {
     title: 'Best Value Phones',
-    eyebrow: 'Value Intelligence',
-    description:
-      'Smartphones that balance price, global score, and practical everyday strengths.',
-    badge: 'Value',
-    sortKey: 'value_score',
+    sub: 'Best overall experience per euro.',
+    icon: '💰',
+    scoreKey: 'value_score',
+    description: 'These smartphones offer the best balance of features, performance, and price according to Witflag value scores.',
+    faqItems: [
+      { q: 'What does value score mean?', a: "Witflag's value score reflects the ratio of overall capabilities to price — a high value score means you're getting a lot for the money." },
+    ],
   },
   'best-phones-under-500': {
     title: 'Best Phones Under €500',
-    eyebrow: 'Budget Intelligence',
-    description:
-      'AI-ranked smartphones focused on strong value and practical specs under a mid-range budget.',
-    badge: 'Budget',
-    sortKey: 'global_score',
-    maxPrice: 500,
+    sub: 'Top-scored smartphones under €500.',
+    icon: '🏷️',
+    scoreKey: 'global_score',
+    description: 'The best smartphones available for under €500, ranked by Witflag global scores.',
+    faqItems: [
+      { q: 'Can budget phones compete with flagships?', a: 'Mid-range phones under €500 have improved dramatically and now offer excellent cameras, displays, and performance.' },
+    ],
   },
   'best-foldable-phones': {
     title: 'Best Foldable Phones',
-    eyebrow: 'Foldable Intelligence',
-    description:
-      'Foldable smartphones ranked by global score and structured product intelligence signals.',
-    badge: 'Foldable',
-    sortKey: 'global_score',
+    sub: 'Ranked foldable smartphones.',
+    icon: '📲',
+    scoreKey: 'global_score',
+    description: 'The best foldable smartphones, ranked by Witflag global score.',
+    faqItems: [
+      { q: 'Are foldable phones durable?', a: 'Modern foldables use reinforced polymer displays and have improved significantly in durability, though they remain more delicate than traditional phones.' },
+    ],
   },
-};
-
-function sortByScore(products: Product[], key: keyof Product): Product[] {
-  return [...products].sort((a, b) => {
-    const av = safeNumber(a[key] as string | number | null) ?? -1;
-    const bv = safeNumber(b[key] as string | number | null) ?? -1;
-    return bv - av;
-  });
 }
 
-export default async function BestSlugPage({ params }: BestSlugPageProps) {
-  const { slug } = await params;
-  const config = GUIDE_MAP[slug];
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  const config = GUIDE_CONFIG[slug]
+  if (!config) return { title: 'Guide not found' }
+  return {
+    title: config.title,
+    description: config.description,
+  }
+}
 
-  /* Unknown slug — simple not-found state */
-  if (!config) {
-    return (
-      <main style={{ padding: '5rem 1.5rem', maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ fontSize: 56, marginBottom: '1rem' }}>🔍</div>
-        <span className="tag tag-v" style={{ marginBottom: '.75rem' }}>Not Found</span>
-        <h1 style={{ fontFamily: 'Syne,sans-serif', fontWeight: 900, fontSize: '1.8rem', color: '#fff', margin: '.75rem 0' }}>
-          Guide not found
-        </h1>
-        <p style={{ color: 'var(--t2)', marginBottom: '1.5rem', fontSize: '.9rem' }}>
-          This buying guide does not exist yet. Check the full list below.
-        </p>
-        <Link className="btn-primary" href="/best">← All buying guides</Link>
-      </main>
-    );
+export default async function BestSlugPage({ params }: Props) {
+  const { slug } = await params
+  const config = GUIDE_CONFIG[slug] ?? {
+    title: slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    sub: 'Ranked by Witflag scores.',
+    icon: '📱',
+    scoreKey: 'global_score' as keyof Product,
+    description: 'Top smartphones ranked by Witflag product intelligence scores.',
+    faqItems: [],
   }
 
-  /* Fetch + filter + sort */
-  let products = await getProducts(300);
+  const allProducts = await getProducts(300)
 
-  if (config.maxPrice) {
-    products = products.filter((p) => {
-      const price = safeNumber(p.price_eur as string | number | null);
-      return price !== null && price <= config.maxPrice!;
-    });
+  let products = [...allProducts]
+
+  // Filter for specific guides
+  if (slug === 'best-phones-under-500') {
+    products = products.filter(p => { const price = safeNumber(p.price_eur); return price !== null && price < 500 })
+  } else if (slug === 'best-foldable-phones') {
+    products = products.filter(p => {
+      const cat = (p.normalized_category ?? '').toLowerCase()
+      const type = (p.product_type ?? '').toLowerCase()
+      return cat.includes('fold') || type.includes('fold') || (p.full_name ?? '').toLowerCase().includes('fold') || (p.full_name ?? '').toLowerCase().includes('flip')
+    })
   }
 
-  if (slug === 'best-foldable-phones') {
-    products = products.filter(
-      (p) =>
-        p.normalized_category?.toLowerCase().includes('foldable') ||
-        p.full_name?.toLowerCase().includes('fold') ||
-        p.full_name?.toLowerCase().includes('flip')
-    );
-  }
+  // Sort by relevant score
+  products.sort((a, b) => {
+    const va = safeNumber((a as Record<string, unknown>)[config.scoreKey as string] as string | number | null) ?? 0
+    const vb = safeNumber((b as Record<string, unknown>)[config.scoreKey as string] as string | number | null) ?? 0
+    return vb - va
+  })
 
-  const ranked = sortByScore(products, config.sortKey).slice(0, 24);
+  const top20 = products.slice(0, 20)
 
   return (
-    <main>
-      {/* ── HERO ── */}
-      <div
-        className="hero-bg page-hero"
-        style={{ borderBottom: '1px solid rgba(124,58,237,.15)' }}
-      >
-        <div className="content-shell">
-          <span className="ph-eyebrow">{config.eyebrow}</span>
-          <h1>{config.title}</h1>
-          <p className="ph-sub">{config.description}</p>
+    <div className="page">
+      <div style={{ marginBottom: 8, fontSize: 13, color: 'var(--text-3)', display: 'flex', gap: 6 }}>
+        <Link href="/best" style={{ color: 'var(--accent)' }}>Guides</Link>
+        <span>›</span>
+        <span>{config.title}</span>
+      </div>
 
-          <div
-            style={{
-              display: 'flex',
-              gap: '1.5rem',
-              marginTop: '1.25rem',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div className="metric" style={{ minWidth: 100 }}>
-              <div className="mv">{ranked.length}</div>
-              <div className="ml">Products ranked</div>
-            </div>
-            <div className="metric" style={{ minWidth: 100 }}>
-              <div className="mv">
-                <Trophy size={18} color="#fbbf24" />
-              </div>
-              <div className="ml">Score-ranked</div>
-            </div>
-            {config.maxPrice && (
-              <div className="metric" style={{ minWidth: 100 }}>
-                <div className="mv">€{config.maxPrice}</div>
-                <div className="ml">Max price</div>
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: '.6rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
-            <Link href="/best" className="btn-ghost" style={{ borderRadius: 12, fontSize: '.8rem' }}>
-              ← All guides
-            </Link>
-            <Link href="/compare" className="btn-primary" style={{ borderRadius: 12, fontSize: '.8rem' }}>
-              ⚖️ Compare these phones
-            </Link>
-          </div>
+      <div className="page-hero">
+        <div className="page-hero-label">Buying Guide</div>
+        <h1 className="page-hero-title">{config.icon} {config.title}</h1>
+        <p className="page-hero-sub">{config.description}</p>
+        <div className="stat-row" style={{ marginTop: 16 }}>
+          <div className="stat-pill"><strong>{top20.length}</strong> Products</div>
+          <div className="stat-pill">Ranked by <strong>{String(config.scoreKey).replace('_score', '').replace('_', ' ')}</strong> score</div>
         </div>
       </div>
 
-      {/* ── RANKED GRID ── */}
-      <section style={{ padding: '2.5rem 0' }}>
-        <div className="content-shell">
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-end',
-              marginBottom: '1.5rem',
-              flexWrap: 'wrap',
-              gap: '.5rem',
-            }}
-          >
-            <div>
-              <span className="tag tag-v sec-label" style={{ marginBottom: '.4rem' }}>
-                {config.badge}
-              </span>
-              <div className="sec-title">Ranked by {config.badge} score</div>
-            </div>
-            <Link href="/products" style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--vl)' }}>
-              Full catalog →
-            </Link>
-          </div>
+      <ProductGrid products={top20} />
 
-          {ranked.length > 0 ? (
-            <ProductGrid products={ranked} />
-          ) : (
-            <div
-              className="glass"
-              style={{ borderRadius: 20, padding: '3rem', textAlign: 'center' }}
-            >
-              <div style={{ fontSize: 48, marginBottom: '1rem' }}>📱</div>
-              <h2
-                style={{
-                  fontFamily: 'Syne,sans-serif',
-                  fontWeight: 900,
-                  fontSize: '1.4rem',
-                  color: '#fff',
-                }}
-              >
-                No products available yet
-              </h2>
-              <p style={{ color: 'var(--t2)', marginTop: '.65rem', fontSize: '.88rem' }}>
-                Check back soon as new products are added to the database.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-    </main>
-  );
+      {/* FAQ */}
+      {config.faqItems.length > 0 && (
+        <section style={{ marginTop: 60 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>Frequently Asked Questions</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {config.faqItems.map(f => (
+              <div key={f.q} style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '18px 20px' }}>
+                <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--text)', marginBottom: 8 }}>{f.q}</div>
+                <div style={{ fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.6 }}>{f.a}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            name: config.title,
+            description: config.description,
+            numberOfItems: top20.length,
+          })
+        }}
+      />
+    </div>
+  )
 }
