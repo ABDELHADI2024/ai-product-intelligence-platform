@@ -1,188 +1,76 @@
 import Link from 'next/link';
-import MetricBox from '@/components/MetricBox';
+import { notFound } from 'next/navigation';
 import ScoreRing from '@/components/ScoreRing';
-import { formatPrice, getProductBySlug, safeText, splitList } from '@/lib/products';
+import { formatPrice, formatScore, getProductBySlug, getProductName, safeText, splitList } from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
 
-type ProductDetailPageProps = { params: Promise<{ slug: string }> };
+type ProductDetailProps = { params: Promise<{ slug: string }> };
 
-export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
+function SpecBox({ label, value }: { label: string; value?: string | number | null }) {
+  return <div className="spec-box"><div className="spec-label">{label}</div><div className="spec-value">{safeText(value, 'Coming soon')}</div></div>;
+}
+
+export async function generateMetadata({ params }: ProductDetailProps) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
+  const name = product ? getProductName(product) : 'Smartphone';
+  return { title: `${name} | Witflag AI`, description: product?.content_summary_en || `AI product intelligence page for ${name}.` };
+}
 
-  if (!product) {
-    return (
-      <main style={{ padding: '96px 24px', maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>📱</div>
-        <span className="eyebrow">Not Found</span>
-        <h1 style={{ marginTop: 12, marginBottom: 12 }}>Smartphone not found</h1>
-        <p style={{ color: 'var(--muted)', marginBottom: 28 }}>This product does not exist in our database yet.</p>
-        <Link className="primary-button" href="/products">← Back to products</Link>
-      </main>
-    );
-  }
-
+export default async function ProductDetailPage({ params }: ProductDetailProps) {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product) notFound();
+  const name = getProductName(product);
   const pros = splitList(product.pros_en);
   const cons = splitList(product.cons_en);
-  const name = safeText(product.full_name, product.model || 'Smartphone');
+
+  const scores = [
+    ['Camera', product.camera_score], ['Battery', product.battery_score], ['Display', product.display_score], ['Gaming', product.gaming_score], ['Value', product.value_score],
+  ];
 
   return (
-    <main>
-      {/* PRODUCT HERO */}
-      <section className="product-hero">
-        {/* Image Panel */}
-        <div className="product-media-panel">
-          <div className="image-stage">
+    <main className="surface-bg">
+      <section className="detail-hero content-shell">
+        <div className="breadcrumb"><Link href="/products">Products</Link><span className="bc-sep">/</span><span>{name}</span></div>
+        <div className="detail-grid mt-6">
+          <div className="detail-media">
             {product.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={product.image_url} alt={name} />
-            ) : (
-              <div style={{ fontSize: 80, opacity: 0.3 }}>📱</div>
-            )}
+            ) : <div className="text-slate-600">No image</div>}
           </div>
-          <div style={{ marginTop: 18, display: 'flex', gap: 10, justifyContent: 'center' }}>
-            <Link href="/compare" className="secondary-button" style={{ flex: 1, justifyContent: 'center' }}>
-              ⚖️ Compare
-            </Link>
-            <Link href="/assistant" className="ghost-button" style={{ flex: 1, justifyContent: 'center' }}>
-              🤖 Assistant
-            </Link>
-          </div>
-        </div>
-
-        {/* Info Panel */}
-        <div className="product-info-panel">
-          <div className="breadcrumb">
-            <Link href="/">Home</Link>
-            <span className="breadcrumb-sep">/</span>
-            <Link href="/products">Smartphones</Link>
-            <span className="breadcrumb-sep">/</span>
-            <span>{safeText(product.brand, 'Brand')}</span>
-          </div>
-
-          <div className="product-brand-tag">
-            {safeText(product.brand, 'Smartphone')}
-          </div>
-          <h1>{name}</h1>
-
-          <div className="product-price">
-            <span className="price-main">{formatPrice(product)}</span>
-            <span className="price-note">Market price</span>
-          </div>
-
-          <div className="global-score-row">
-            <ScoreRing value={product.global_score} size="lg" />
-            <div>
-              <div className="global-score-label">
-                Global AI Score
-                <strong>{safeText(product.global_score, '—')} / 100</strong>
-              </div>
+          <div className="detail-info">
+            <p className="ph-eyebrow">{safeText(product.brand, 'Smartphone')}</p>
+            <h1 className="detail-title">{name}</h1>
+            <div className="detail-price">{formatPrice(product)}</div>
+            <p className="detail-summary">{safeText(product.content_summary_en, 'AI-ready smartphone profile prepared for search, comparison and recommendations.')}</p>
+            <div className="mt-6 flex items-center gap-5 rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5">
+              <ScoreRing value={product.global_score} size="lg" />
+              <div><p className="text-sm uppercase tracking-[.24em] text-violet-300">Global AI Score</p><p className="mt-1 text-2xl font-black">{formatScore(product.global_score)}</p></div>
             </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: 'var(--muted)' }}>
-              <span>📸 Camera: <strong style={{ color: 'var(--text)' }}>{safeText(product.camera_score, '—')}</strong></span>
-              <span>🔋 Battery: <strong style={{ color: 'var(--text)' }}>{safeText(product.battery_score, '—')}</strong></span>
-              <span>💰 Value: <strong style={{ color: 'var(--text)' }}>{safeText(product.value_score, '—')}</strong></span>
+            <div className="detail-specs">
+              <SpecBox label="Display" value={product.screen_size} />
+              <SpecBox label="Chipset" value={product.chipset} />
+              <SpecBox label="Battery" value={product.battery_mah ? `${product.battery_mah} mAh` : null} />
+              <SpecBox label="Storage" value={product.storage || product.ram} />
             </div>
           </div>
-
-          <p className="product-summary">
-            {safeText(product.content_summary_en, 'A premium smartphone with strong AI-scored performance across all key metrics.')}
-          </p>
-
-          <div className="product-actions">
-            <Link href="/compare" className="primary-button">⚖️ Add to Compare</Link>
-            <Link href="/assistant" className="secondary-button">🤖 Get Recommendations</Link>
-          </div>
-        </div>
-
-        {/* Key Specs */}
-        <div className="key-spec-card">
-          <h3>Key Specifications</h3>
-          <MetricBox
-            label="Display"
-            value={product.screen_size}
-            helper={`${safeText(product.screen_type, 'LCD')} · ${safeText(product.refresh_rate, '')}`}
-          />
-          <MetricBox
-            label="Chipset"
-            value={product.chipset}
-            helper={`${safeText(product.ram, 'RAM')} RAM`}
-          />
-          <MetricBox
-            label="Storage"
-            value={product.storage}
-            helper={`${safeText(product.ram, '')} RAM · ${safeText(product.storage, '')} Storage`}
-          />
-          <MetricBox
-            label="Battery"
-            value={product.battery_mah ? `${product.battery_mah}mAh` : null}
-          />
-          <MetricBox
-            label="Rear Camera"
-            value={product.rear_camera}
-            helper={`Score: ${safeText(product.camera_score, '—')}`}
-          />
-          <MetricBox
-            label="Front Camera"
-            value={product.front_camera}
-          />
-          <MetricBox
-            label="Resolution"
-            value={product.resolution}
-          />
         </div>
       </section>
 
-      {/* SCORES + VERDICT */}
-      <section className="section-shell detail-grid" style={{ paddingTop: 0 }}>
-        <div>
-          <div className="wide-card" style={{ marginBottom: 20 }}>
-            <h2>AI Scores Breakdown</h2>
-            <div className="score-row">
-              <ScoreRing value={product.global_score} label="Global" size="lg" />
-              <ScoreRing value={product.camera_score} label="Camera" size="md" />
-              <ScoreRing value={product.battery_score} label="Battery" size="md" />
-              <ScoreRing value={product.display_score} label="Display" size="md" />
-              <ScoreRing value={product.gaming_score} label="Gaming" size="md" />
-              <ScoreRing value={product.value_score} label="Value" size="md" />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div className="list-card positive">
-              <h3>✅ Pros</h3>
-              <ul>
-                {(pros.length ? pros : ['Strong AI-scored performance']).map((item) => (
-                  <li key={item}>
-                    <span>✓</span> {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="list-card negative">
-              <h3>⚠️ Cons</h3>
-              <ul>
-                {(cons.length ? cons : ['Some specs may need validation']).map((item) => (
-                  <li key={item}>
-                    <span>•</span> {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+      <section className="section content-shell">
+        <div className="section-head"><div><p className="ph-eyebrow">Score breakdown</p><h2 className="section-title">Decision signals.</h2></div></div>
+        <div className="feature-grid">
+          {scores.map(([label, value]) => <div key={label as string} className="feature-card"><ScoreRing value={value} label={label as string} /><h3 className="mt-4 font-bold">{label}</h3></div>)}
         </div>
+      </section>
 
-        <div>
-          <div className="verdict-card">
-            <h2>🤖 AI Verdict</h2>
-            <p>
-              {safeText(
-                product.expert_opinion_en,
-                'Witflag evaluates this smartphone using camera, battery, display, gaming and value signals to produce a comprehensive AI score.'
-              )}
-            </p>
-          </div>
+      <section className="section content-shell">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="glass p-6"><h2 className="text-2xl font-black">Pros</h2><ul className="mt-4 grid gap-3 text-slate-300">{(pros.length ? pros : ['Strong product intelligence profile']).map((p) => <li key={p}>✓ {p}</li>)}</ul></div>
+          <div className="glass p-6"><h2 className="text-2xl font-black">Cons</h2><ul className="mt-4 grid gap-3 text-slate-300">{(cons.length ? cons : ['More benchmark validation may be needed']).map((c) => <li key={c}>• {c}</li>)}</ul></div>
         </div>
       </section>
     </main>

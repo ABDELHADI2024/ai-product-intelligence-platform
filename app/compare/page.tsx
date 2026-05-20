@@ -1,92 +1,25 @@
-import CompareTable from '@/components/CompareTable';
-import ComparisonProductPicker from '@/components/ComparisonProductPicker';
-import { getProducts, getProductsBySlugs, getProductName } from '@/lib/products';
+import Link from 'next/link';
+import ScoreRing from '@/components/ScoreRing';
+import { formatPrice, getProductName, getProducts, getProductsBySlugs, safeText } from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
 
-type ComparePageProps = {
-  searchParams?: Promise<{
-    phones?: string;
-  }>;
-};
-
-function parseSelectedSlugs(value?: string): string[] {
-  if (!value) {
-    return [];
-  }
-
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 4);
-}
+type ComparePageProps = { searchParams?: Promise<{ phones?: string }> };
 
 export default async function ComparePage({ searchParams }: ComparePageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : {};
-  const selectedSlugs = parseSelectedSlugs(resolvedSearchParams.phones);
-
-  const [popularProducts, selectedProducts] = await Promise.all([
-    getProducts(24),
-    selectedSlugs.length ? getProductsBySlugs(selectedSlugs) : Promise.resolve([]),
-  ]);
-
-  const productsForComparison =
-    selectedProducts.length >= 2 ? selectedProducts : popularProducts.slice(0, 3);
-
-  const activeSlugs =
-    selectedProducts.length >= 2
-      ? selectedProducts.map((product) => product.slug || '').filter(Boolean)
-      : productsForComparison.map((product) => product.slug || '').filter(Boolean);
+  const sp = searchParams ? await searchParams : {};
+  const slugs = (sp.phones || '').split(',').map(s => s.trim()).filter(Boolean).slice(0, 4);
+  const selected = slugs.length ? await getProductsBySlugs(slugs) : (await getProducts(4));
+  const rows = [
+    ['Price', (p: any) => formatPrice(p)], ['Global', (p: any) => safeText(p.global_score, '—')], ['Camera', (p: any) => safeText(p.camera_score, '—')], ['Battery', (p: any) => safeText(p.battery_score, '—')], ['Display', (p: any) => safeText(p.display_score, '—')], ['Gaming', (p: any) => safeText(p.gaming_score, '—')], ['Value', (p: any) => safeText(p.value_score, '—')], ['Chipset', (p: any) => safeText(p.chipset, '—')], ['Battery mAh', (p: any) => safeText(p.battery_mah, '—')]
+  ] as const;
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
-      <section className="border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_38%),radial-gradient(circle_at_top_right,rgba(79,70,229,0.18),transparent_35%)]">
-        <div className="mx-auto max-w-7xl px-5 py-16">
-          <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">
-            Dynamic comparison engine
-          </p>
-          <h1 className="mt-4 max-w-4xl text-5xl font-black tracking-tight md:text-7xl">
-            Compare smartphones with score-based intelligence.
-          </h1>
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
-            Select up to four smartphones and Witflag will compare global,
-            camera, battery, gaming, display, and value scores with a clear
-            verdict.
-          </p>
-
-          <div className="mt-8 rounded-3xl border border-cyan-300/15 bg-cyan-300/[0.06] p-5">
-            <p className="text-sm text-slate-300">
-              Current comparison:{' '}
-              <span className="font-semibold text-cyan-200">
-                {productsForComparison.map(getProductName).join(' vs ')}
-              </span>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-5 py-10">
-        <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-          <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
-              Select smartphones
-            </p>
-            <h2 className="mt-2 text-3xl font-bold">Choose up to four products</h2>
-          </div>
-          <p className="text-sm text-slate-400">
-            Tip: click a product card to add or remove it from the comparison.
-          </p>
-        </div>
-
-        <ComparisonProductPicker
-          products={popularProducts}
-          selectedSlugs={activeSlugs}
-        />
-      </section>
-
-      <section className="mx-auto max-w-7xl px-5 pb-16">
-        <CompareTable products={productsForComparison} />
+    <main className="surface-bg">
+      <section className="page-hero"><div className="content-shell"><p className="ph-eyebrow">Dynamic comparison</p><h1 className="ph-title">Compare smartphones side by side.</h1><p className="ph-sub">Compare global score, camera, battery, gaming, value, specs and price.</p></div></section>
+      <section className="section content-shell">
+        <div className="grid gap-4 md:grid-cols-4">{selected.map(p => <div key={p.id} className="glass p-5 text-center">{p.image_url ? <img src={p.image_url} alt={getProductName(p)} className="mx-auto h-40 object-contain" /> : null}<h3 className="mt-4 font-black">{getProductName(p)}</h3><div className="mt-4 flex justify-center"><ScoreRing value={p.global_score} /></div>{p.slug ? <Link className="btn-primary mt-4" href={`/products/${p.slug}`}>View</Link> : null}</div>)}</div>
+        <div className="glass mt-6 overflow-x-auto p-4"><table className="w-full min-w-[720px] text-sm"><tbody>{rows.map(([label, fn]) => <tr key={label} className="border-b border-white/10"><th className="py-4 pr-4 text-left text-slate-400">{label}</th>{selected.map(p => <td key={p.id + label} className="px-4 py-4 font-semibold">{fn(p)}</td>)}</tr>)}</tbody></table></div>
       </section>
     </main>
   );
