@@ -1,17 +1,43 @@
-import Link from 'next/link';
+import SEOTopicCard from '@/components/SEOTopicCard';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Best Smartphones Guides | Witflag AI' };
+
+export const metadata = {
+  title: 'Best Smartphones Guides | Witflag AI',
+  description: 'Explore AI-ranked smartphone buying guides for camera, battery, gaming, value, and budget decisions.',
+};
 
 const topics = [
-  ['Camera', '/best/best-camera-phones', 'Best camera phones', 'Smartphones ranked by camera score and global intelligence.'],
-  ['Battery', '/best/best-battery-phones', 'Best battery phones', 'Strong battery scores and daily reliability.'],
-  ['Gaming', '/best/best-gaming-phones', 'Best gaming phones', 'Performance, display and battery balance.'],
-  ['Value', '/best/best-value-phones', 'Best value phones', 'Best balance between price and experience.'],
-  ['Budget', '/best/best-phones-under-500', 'Best phones under €500', 'Great phones for a mid-range budget.'],
-  ['Foldable', '/best/best-foldable-phones', 'Best foldable phones', 'Foldables ranked by product intelligence.'],
-];
+  ['Camera',   '/best/best-camera-phones',    'Best camera phones',          'Smartphones ranked by camera score, image potential, display quality, and global product intelligence.'],
+  ['Battery',  '/best/best-battery-phones',   'Best battery phones',         'Find smartphones with strong battery scores, endurance potential, and daily reliability signals.'],
+  ['Gaming',   '/best/best-gaming-phones',    'Best gaming phones',          'Performance-first smartphones ranked by gaming score, chipset signals, display, and battery balance.'],
+  ['Value',    '/best/best-value-phones',     'Best value phones',           'Smartphones that balance price, global score, and practical everyday strengths.'],
+  ['Budget',   '/best/best-phones-under-500', 'Best phones under €500',      'AI-ranked smartphones focused on strong value and practical specs under a mid-range budget.'],
+  ['Foldable', '/best/best-foldable-phones',  'Best foldable phones',        'Foldable smartphones ranked by global score and product intelligence signals.'],
+] as const;
 
-export default function BestPage() {
-  return <main className="surface-bg"><section className="page-hero"><div className="content-shell"><p className="ph-eyebrow">SEO intelligence pages</p><h1 className="ph-title">Best smartphone guides powered by product intelligence.</h1><p className="ph-sub">Google-friendly buying guides generated from your smartphone database.</p></div></section><section className="section content-shell"><div className="feature-grid">{topics.map(([badge, href, title, desc]) => <Link href={href} key={href} className="feature-card"><p className="ph-eyebrow">{badge}</p><h2 className="mt-5 text-2xl font-black">{title}</h2><p className="mt-3 text-sm leading-6 text-slate-400">{desc}</p></Link>)}</div></section></main>;
+export default function BestGuidesPage() {
+  return (
+    <main>
+      {/* Hero */}
+      <div className="hero-bg page-hero" style={{ borderBottom: '1px solid rgba(124,58,237,.15)' }}>
+        <div className="content-shell">
+          <span className="ph-eyebrow">SEO Intelligence Pages</span>
+          <h1>Best smartphone guides powered<br />by product intelligence.</h1>
+          <p className="ph-sub">
+            These pages transform your product database into Google-friendly buying guides ranked by Witflag scores.
+          </p>
+        </div>
+      </div>
+
+      {/* Cards */}
+      <section style={{ padding: '2.5rem 0' }}>
+        <div className="content-shell" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '.85rem' }}>
+          {topics.map(([badge, href, title, description]) => (
+            <SEOTopicCard key={href} href={href} title={title} description={description} badge={badge} />
+          ))}
+        </div>
+      </section>
+    </main>
+  );
 }

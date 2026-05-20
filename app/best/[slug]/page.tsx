@@ -1,141 +1,222 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import SEOProductRow from '@/components/SEOProductRow';
-import { getProducts, Product, safeNumber } from '@/lib/products';
+import { Trophy } from 'lucide-react';
+import ProductGrid from '@/components/ProductGrid';
+import { getProducts, safeNumber, Product } from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
 
-type BestPageProps = {
-  params: Promise<{ slug: string }>;
-};
+type BestSlugPageProps = { params: Promise<{ slug: string }> };
 
-type Topic = {
+/* ──────────────────────────────────────────────
+   Config map: slug → display metadata + sort key
+────────────────────────────────────────────── */
+interface GuideConfig {
   title: string;
+  eyebrow: string;
   description: string;
-  intro: string;
-  scoreLabel: string;
-  score: keyof Product;
-  filter?: (product: Product) => boolean;
-};
-
-const topics: Record<string, Topic> = {
-  'best-camera-phones': {
-    title: 'Best camera phones',
-    description: 'AI-ranked camera smartphones based on camera score and global product intelligence.',
-    intro: 'This guide ranks smartphones for users who care about photos, video, selfies, social content, and camera reliability.',
-    scoreLabel: 'Camera',
-    score: 'camera_score',
-  },
-  'best-battery-phones': {
-    title: 'Best battery phones',
-    description: 'Smartphones ranked for battery life and daily reliability.',
-    intro: 'This guide highlights phones with strong battery scores and practical daily endurance signals.',
-    scoreLabel: 'Battery',
-    score: 'battery_score',
-  },
-  'best-gaming-phones': {
-    title: 'Best gaming phones',
-    description: 'Performance-focused smartphones ranked by gaming score and display/battery balance.',
-    intro: 'This guide focuses on smartphones for gaming, performance, smooth displays, and sustained usage.',
-    scoreLabel: 'Gaming',
-    score: 'gaming_score',
-  },
-  'best-value-phones': {
-    title: 'Best value phones',
-    description: 'Smartphones ranked by value score, price, and global balance.',
-    intro: 'This guide ranks phones that offer the strongest practical balance between price and product intelligence score.',
-    scoreLabel: 'Value',
-    score: 'value_score',
-  },
-  'best-phones-under-500': {
-    title: 'Best phones under €500',
-    description: 'Smartphones under €500 ranked by value and global product intelligence.',
-    intro: 'This guide focuses on phones under €500, prioritizing value, balanced specs, and useful everyday performance.',
-    scoreLabel: 'Value',
-    score: 'value_score',
-    filter: (product) => {
-      const price = safeNumber(product.price_eur);
-      return price === null || price <= 500;
-    },
-  },
-  'best-foldable-phones': {
-    title: 'Best foldable phones',
-    description: 'Foldable smartphones ranked by global product intelligence.',
-    intro: 'This guide ranks foldable smartphones using global score and key product intelligence signals.',
-    scoreLabel: 'Global',
-    score: 'global_score',
-    filter: (product) => product.normalized_category === 'foldable-smartphones',
-  },
-};
-
-export async function generateMetadata({ params }: BestPageProps) {
-  const { slug } = await params;
-  const topic = topics[slug];
-
-  if (!topic) {
-    return { title: 'Best Smartphones | Witflag AI' };
-  }
-
-  return {
-    title: `${topic.title} | Witflag AI`,
-    description: topic.description,
-  };
+  badge: string;
+  sortKey: keyof Product;
+  maxPrice?: number;
 }
 
-export default async function BestTopicPage({ params }: BestPageProps) {
+const GUIDE_MAP: Record<string, GuideConfig> = {
+  'best-camera-phones': {
+    title: 'Best Camera Phones',
+    eyebrow: 'Camera Intelligence',
+    description:
+      'Smartphones ranked by camera score, image potential, display quality, and global product intelligence.',
+    badge: 'Camera',
+    sortKey: 'camera_score',
+  },
+  'best-battery-phones': {
+    title: 'Best Battery Phones',
+    eyebrow: 'Battery Intelligence',
+    description:
+      'Find smartphones with strong battery scores, endurance potential, and daily reliability signals.',
+    badge: 'Battery',
+    sortKey: 'battery_score',
+  },
+  'best-gaming-phones': {
+    title: 'Best Gaming Phones',
+    eyebrow: 'Gaming Intelligence',
+    description:
+      'Performance-first smartphones ranked by gaming score, chipset signals, display, and battery balance.',
+    badge: 'Gaming',
+    sortKey: 'gaming_score',
+  },
+  'best-value-phones': {
+    title: 'Best Value Phones',
+    eyebrow: 'Value Intelligence',
+    description:
+      'Smartphones that balance price, global score, and practical everyday strengths.',
+    badge: 'Value',
+    sortKey: 'value_score',
+  },
+  'best-phones-under-500': {
+    title: 'Best Phones Under €500',
+    eyebrow: 'Budget Intelligence',
+    description:
+      'AI-ranked smartphones focused on strong value and practical specs under a mid-range budget.',
+    badge: 'Budget',
+    sortKey: 'global_score',
+    maxPrice: 500,
+  },
+  'best-foldable-phones': {
+    title: 'Best Foldable Phones',
+    eyebrow: 'Foldable Intelligence',
+    description:
+      'Foldable smartphones ranked by global score and structured product intelligence signals.',
+    badge: 'Foldable',
+    sortKey: 'global_score',
+  },
+};
+
+function sortByScore(products: Product[], key: keyof Product): Product[] {
+  return [...products].sort((a, b) => {
+    const av = safeNumber(a[key] as string | number | null) ?? -1;
+    const bv = safeNumber(b[key] as string | number | null) ?? -1;
+    return bv - av;
+  });
+}
+
+export default async function BestSlugPage({ params }: BestSlugPageProps) {
   const { slug } = await params;
-  const topic = topics[slug];
+  const config = GUIDE_MAP[slug];
 
-  if (!topic) notFound();
+  /* Unknown slug — simple not-found state */
+  if (!config) {
+    return (
+      <main style={{ padding: '5rem 1.5rem', maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
+        <div style={{ fontSize: 56, marginBottom: '1rem' }}>🔍</div>
+        <span className="tag tag-v" style={{ marginBottom: '.75rem' }}>Not Found</span>
+        <h1 style={{ fontFamily: 'Syne,sans-serif', fontWeight: 900, fontSize: '1.8rem', color: '#fff', margin: '.75rem 0' }}>
+          Guide not found
+        </h1>
+        <p style={{ color: 'var(--t2)', marginBottom: '1.5rem', fontSize: '.9rem' }}>
+          This buying guide does not exist yet. Check the full list below.
+        </p>
+        <Link className="btn-primary" href="/best">← All buying guides</Link>
+      </main>
+    );
+  }
 
-  const products = await getProducts(300);
-  const rankedProducts = products
-    .filter((product) => (topic.filter ? topic.filter(product) : true))
-    .sort((a, b) => (safeNumber(b[topic.score]) || 0) - (safeNumber(a[topic.score]) || 0))
-    .slice(0, 20);
+  /* Fetch + filter + sort */
+  let products = await getProducts(300);
+
+  if (config.maxPrice) {
+    products = products.filter((p) => {
+      const price = safeNumber(p.price_eur as string | number | null);
+      return price !== null && price <= config.maxPrice!;
+    });
+  }
+
+  if (slug === 'best-foldable-phones') {
+    products = products.filter(
+      (p) =>
+        p.normalized_category?.toLowerCase().includes('foldable') ||
+        p.full_name?.toLowerCase().includes('fold') ||
+        p.full_name?.toLowerCase().includes('flip')
+    );
+  }
+
+  const ranked = sortByScore(products, config.sortKey).slice(0, 24);
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
-      <section className="border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.2),transparent_34%),radial-gradient(circle_at_top_right,rgba(79,70,229,0.22),transparent_35%)]">
-        <div className="mx-auto max-w-7xl px-5 py-16">
-          <Link href="/best" className="text-sm font-semibold text-cyan-300">
-            ← Best smartphone guides
-          </Link>
+    <main>
+      {/* ── HERO ── */}
+      <div
+        className="hero-bg page-hero"
+        style={{ borderBottom: '1px solid rgba(124,58,237,.15)' }}
+      >
+        <div className="content-shell">
+          <span className="ph-eyebrow">{config.eyebrow}</span>
+          <h1>{config.title}</h1>
+          <p className="ph-sub">{config.description}</p>
 
-          <p className="mt-8 text-sm uppercase tracking-[0.35em] text-cyan-300">
-            AI-ranked buying guide
-          </p>
+          <div
+            style={{
+              display: 'flex',
+              gap: '1.5rem',
+              marginTop: '1.25rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div className="metric" style={{ minWidth: 100 }}>
+              <div className="mv">{ranked.length}</div>
+              <div className="ml">Products ranked</div>
+            </div>
+            <div className="metric" style={{ minWidth: 100 }}>
+              <div className="mv">
+                <Trophy size={18} color="#fbbf24" />
+              </div>
+              <div className="ml">Score-ranked</div>
+            </div>
+            {config.maxPrice && (
+              <div className="metric" style={{ minWidth: 100 }}>
+                <div className="mv">€{config.maxPrice}</div>
+                <div className="ml">Max price</div>
+              </div>
+            )}
+          </div>
 
-          <h1 className="mt-5 max-w-5xl text-5xl font-black tracking-tight md:text-7xl">
-            {topic.title}
-          </h1>
-
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
-            {topic.intro}
-          </p>
-
-          <div className="mt-8 rounded-[2rem] border border-cyan-300/15 bg-cyan-300/[0.06] p-5">
-            <p className="text-sm text-slate-300">
-              Ranking signal:{' '}
-              <span className="font-semibold text-cyan-200">
-                {topic.scoreLabel} score + Witflag product intelligence data
-              </span>
-            </p>
+          <div style={{ display: 'flex', gap: '.6rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+            <Link href="/best" className="btn-ghost" style={{ borderRadius: 12, fontSize: '.8rem' }}>
+              ← All guides
+            </Link>
+            <Link href="/compare" className="btn-primary" style={{ borderRadius: 12, fontSize: '.8rem' }}>
+              ⚖️ Compare these phones
+            </Link>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section className="mx-auto max-w-7xl px-5 py-12">
-        <div className="space-y-5">
-          {rankedProducts.map((product, index) => (
-            <SEOProductRow
-              key={product.id}
-              product={product}
-              rank={index + 1}
-              scoreLabel={topic.scoreLabel}
-              scoreValue={product[topic.score] as string | number | null}
-            />
-          ))}
+      {/* ── RANKED GRID ── */}
+      <section style={{ padding: '2.5rem 0' }}>
+        <div className="content-shell">
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-end',
+              marginBottom: '1.5rem',
+              flexWrap: 'wrap',
+              gap: '.5rem',
+            }}
+          >
+            <div>
+              <span className="tag tag-v sec-label" style={{ marginBottom: '.4rem' }}>
+                {config.badge}
+              </span>
+              <div className="sec-title">Ranked by {config.badge} score</div>
+            </div>
+            <Link href="/products" style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--vl)' }}>
+              Full catalog →
+            </Link>
+          </div>
+
+          {ranked.length > 0 ? (
+            <ProductGrid products={ranked} />
+          ) : (
+            <div
+              className="glass"
+              style={{ borderRadius: 20, padding: '3rem', textAlign: 'center' }}
+            >
+              <div style={{ fontSize: 48, marginBottom: '1rem' }}>📱</div>
+              <h2
+                style={{
+                  fontFamily: 'Syne,sans-serif',
+                  fontWeight: 900,
+                  fontSize: '1.4rem',
+                  color: '#fff',
+                }}
+              >
+                No products available yet
+              </h2>
+              <p style={{ color: 'var(--t2)', marginTop: '.65rem', fontSize: '.88rem' }}>
+                Check back soon as new products are added to the database.
+              </p>
+            </div>
+          )}
         </div>
       </section>
     </main>

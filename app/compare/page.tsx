@@ -1,9 +1,15 @@
 import Link from 'next/link';
-import { GitCompare, Sparkles, Trophy } from 'lucide-react';
-import BentoGrid from '@/components/BentoGrid';
-import CompareScoreRadar from '@/components/CompareScoreRadar';
-import ProductCard from '@/components/ProductCard';
-import { getProductName, getProducts, safeNumber, safeText, type Product } from '@/lib/products';
+import {
+  getComparisonVerdict,
+  getComparisonWinners,
+  getProductName,
+  getProducts,
+  getProductsBySlugs,
+  safeNumber,
+  formatPrice,
+  Product,
+} from '@/lib/products';
+import ComparisonProductPicker from '@/components/ComparisonProductPicker';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,128 +17,402 @@ type ComparePageProps = {
   searchParams?: Promise<{ phones?: string }>;
 };
 
-const scoreRows: { key: keyof Product; label: string }[] = [
-  { key: 'global_score', label: 'Global AI score' },
-  { key: 'camera_score', label: 'Camera' },
-  { key: 'battery_score', label: 'Battery' },
-  { key: 'display_score', label: 'Display' },
-  { key: 'gaming_score', label: 'Gaming' },
-  { key: 'value_score', label: 'Value' },
-];
-
-function selectProducts(products: Product[], phones?: string) {
-  const slugs = (phones || '').split(',').map((item) => item.trim()).filter(Boolean);
-  if (!slugs.length) return products.slice(0, 3);
-  const selected = slugs.map((slug) => products.find((product) => product.slug === slug)).filter(Boolean) as Product[];
-  return selected.length ? selected.slice(0, 4) : products.slice(0, 3);
+function parseSelectedSlugs(value?: string): string[] {
+  if (!value) return [];
+  return value.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 4);
 }
 
-function winner(products: Product[], key: keyof Product) {
-  return [...products].sort((a, b) => (safeNumber(b[key]) || 0) - (safeNumber(a[key]) || 0))[0];
+const SCORE_ROWS = [
+  { key: 'global_score',  label: 'Global Score',  icon: '🌐', color: '#a78bfa' },
+  { key: 'camera_score',  label: 'Camera',         icon: '📸', color: '#22d3ee' },
+  { key: 'battery_score', label: 'Battery',        icon: '🔋', color: '#4ade80' },
+  { key: 'display_score', label: 'Display',        icon: '📺', color: '#6366f1' },
+  { key: 'gaming_score',  label: 'Gaming',         icon: '🎮', color: '#fbbf24' },
+  { key: 'value_score',   label: 'Value',          icon: '💰', color: '#f87171' },
+] as const;
+
+type ScoreRowKey = typeof SCORE_ROWS[number]['key'];
+
+function ScoreBar({
+  value,
+  max,
+  color,
+  isWinner,
+}: {
+  value: number | null;
+  max: number;
+  color: string;
+  isWinner: boolean;
+}) {
+  const pct = value !== null && max > 0 ? Math.round((value / max) * 100) : 0;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', flex: 1 }}>
+      <div
+        style={{
+          flex: 1,
+          height: 8,
+          borderRadius: 999,
+          background: 'rgba(255,255,255,0.06)',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            width: `${pct}%`,
+            height: '100%',
+            borderRadius: 999,
+            background: isWinner
+              ? `linear-gradient(90deg, ${color}, ${color}cc)`
+              : `${color}66`,
+            transition: 'width .4s ease',
+            boxShadow: isWinner ? `0 0 8px ${color}88` : 'none',
+          }}
+        />
+      </div>
+      <div
+        style={{
+          fontFamily: 'Syne,sans-serif',
+          fontWeight: 900,
+          fontSize: '.85rem',
+          color: isWinner ? color : 'var(--t2)',
+          minWidth: 28,
+          textAlign: 'right',
+        }}
+      >
+        {value !== null ? Math.round(value) : '—'}
+      </div>
+      {isWinner && (
+        <span
+          className="tag tag-c"
+          style={{ fontSize: '.55rem', padding: '.15rem .4rem', flexShrink: 0 }}
+        >
+          ✓ Best
+        </span>
+      )}
+    </div>
+  );
 }
 
 export default async function ComparePage({ searchParams }: ComparePageProps) {
-  const sp = searchParams ? await searchParams : {};
-  const products = await getProducts(300);
-  const selected = selectProducts(products, sp.phones);
-  const bestOverall = winner(selected, 'global_score');
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const selectedSlugs = parseSelectedSlugs(resolvedSearchParams.phones);
+
+  const [popularProducts, selectedProducts] = await Promise.all([
+    getProducts(24),
+    selectedSlugs.length ? getProductsBySlugs(selectedSlugs) : Promise.resolve([]),
+  ]);
+
+  const productsForComparison: Product[] =
+    selectedProducts.length >= 2 ? selectedProducts : popularProducts.slice(0, 3);
+
+  const activeSlugs = productsForComparison.map((p) => p.slug || '').filter(Boolean);
+  const verdict = getComparisonVerdict(productsForComparison);
+  const winners = getComparisonWinners(productsForComparison);
+
+  // Build winner map: scoreKey → winning product id
+  const winnerMap = new Map<string, string | undefined>();
+  winners.forEach((w) => {
+    if (w.winner?.id) winnerMap.set(w.key, w.winner.id);
+  });
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
-      <section className="border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_34%),radial-gradient(circle_at_top_right,rgba(139,92,246,0.22),transparent_34%)]">
-        <div className="mx-auto max-w-7xl px-5 py-16">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-200">
-            <GitCompare className="h-4 w-4" />
-            Smartphone comparison
-          </div>
-          <h1 className="mt-7 max-w-5xl text-5xl font-black tracking-tight md:text-7xl">
-            Compare phones with visual intelligence.
+    <main>
+      {/* ── HERO ── */}
+      <div
+        className="surface-bg page-hero"
+        style={{ borderBottom: '1px solid rgba(124,58,237,.15)' }}
+      >
+        <div className="content-shell">
+          <span className="ph-eyebrow">Comparison Engine</span>
+          <h1>
+            Compare smartphones
+            <br />
+            score by score.
           </h1>
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
-            Compare real products from your Supabase database using score bars, AI-style verdicts, and side-by-side decision signals.
+          <p className="ph-sub">
+            Select up to four smartphones. Witflag ranks camera, battery,
+            gaming, display, value, and global scores with a clear winner label.
           </p>
-          <div className="mt-8 rounded-[2rem] border border-cyan-300/15 bg-cyan-300/[0.06] p-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">Current verdict</p>
-                <p className="mt-2 text-xl font-bold">
-                  {bestOverall ? `${getProductName(bestOverall)} is currently the strongest overall pick.` : 'Select phones to compare.'}
-                </p>
+
+          {/* Active comparison strip */}
+          <div
+            className="glass"
+            style={{
+              borderRadius: 14,
+              padding: '.85rem 1.25rem',
+              marginTop: '1.25rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '1rem',
+            }}
+          >
+            <span style={{ fontSize: '.7rem', color: 'var(--t3)' }}>Comparing</span>
+            <span
+              style={{
+                fontFamily: 'Syne,sans-serif',
+                fontWeight: 800,
+                color: 'var(--c)',
+                fontSize: '.92rem',
+              }}
+            >
+              {productsForComparison.map(getProductName).join(' vs ')}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── PRODUCT PICKER ── */}
+      <section style={{ padding: '2rem 0', borderBottom: '1px solid rgba(124,58,237,.08)' }}>
+        <div className="content-shell">
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-end',
+              marginBottom: '1.1rem',
+              flexWrap: 'wrap',
+              gap: '.5rem',
+            }}
+          >
+            <div>
+              <span className="tag tag-v" style={{ marginBottom: '.4rem', display: 'inline-flex' }}>
+                Select smartphones
+              </span>
+              <div
+                style={{
+                  fontFamily: 'Syne,sans-serif',
+                  fontWeight: 800,
+                  fontSize: '1.1rem',
+                  color: '#fff',
+                  marginTop: '.25rem',
+                }}
+              >
+                Choose up to 4 products
               </div>
-              <Link href="/products" className="rounded-full bg-cyan-400 px-5 py-3 text-center text-sm font-bold text-slate-950 hover:bg-cyan-300">
-                Add phones
-              </Link>
             </div>
+            <p style={{ fontSize: '.78rem', color: 'var(--t2)' }}>
+              Tip: click a card to add or remove it from comparison.
+            </p>
+          </div>
+          <ComparisonProductPicker products={popularProducts} selectedSlugs={activeSlugs} />
+        </div>
+      </section>
+
+      {/* ── SCORE COMPARISON BARS ── */}
+      <section style={{ padding: '2.5rem 0', borderBottom: '1px solid rgba(124,58,237,.08)' }}>
+        <div className="content-shell">
+          <div style={{ marginBottom: '1.5rem' }}>
+            <span className="tag tag-c" style={{ marginBottom: '.4rem', display: 'inline-flex' }}>
+              AI Score Breakdown
+            </span>
+            <div
+              style={{
+                fontFamily: 'Syne,sans-serif',
+                fontWeight: 900,
+                fontSize: '1.35rem',
+                color: '#fff',
+                marginTop: '.25rem',
+              }}
+            >
+              Visual score comparison
+            </div>
+          </div>
+
+          {/* Product header columns */}
+          <div
+            className="glass"
+            style={{ borderRadius: 20, padding: '1.5rem', overflow: 'hidden' }}
+          >
+            {/* Column headers */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `160px repeat(${productsForComparison.length}, 1fr)`,
+                gap: '1rem',
+                marginBottom: '1.25rem',
+                paddingBottom: '1.25rem',
+                borderBottom: '1px solid rgba(124,58,237,.12)',
+              }}
+            >
+              <div />
+              {productsForComparison.map((p) => {
+                const isOverallWinner = verdict.bestOverall?.id === p.id;
+                return (
+                  <div key={p.id} style={{ textAlign: 'center' }}>
+                    {p.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.image_url}
+                        alt={getProductName(p)}
+                        style={{
+                          height: 70,
+                          maxWidth: '100%',
+                          objectFit: 'contain',
+                          margin: '0 auto .5rem',
+                          display: 'block',
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          height: 70,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '2rem',
+                        }}
+                      >
+                        📱
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        fontFamily: 'Syne,sans-serif',
+                        fontWeight: 800,
+                        fontSize: '.82rem',
+                        color: '#fff',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {getProductName(p)}
+                    </div>
+                    <div style={{ fontSize: '.72rem', color: 'var(--t2)', marginTop: '.2rem' }}>
+                      {formatPrice(p)}
+                    </div>
+                    {isOverallWinner && (
+                      <span
+                        className="tag tag-g"
+                        style={{ marginTop: '.4rem', fontSize: '.6rem' }}
+                      >
+                        🏆 Best overall
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Score rows */}
+            {SCORE_ROWS.map(({ key, label, icon, color }) => {
+              const max = Math.max(
+                ...productsForComparison.map((p) => safeNumber(p[key as ScoreRowKey]) ?? 0),
+                1
+              );
+              const winnerId = winnerMap.get(key);
+
+              return (
+                <div
+                  key={key}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: `160px repeat(${productsForComparison.length}, 1fr)`,
+                    gap: '1rem',
+                    alignItems: 'center',
+                    padding: '.6rem 0',
+                    borderBottom: '1px solid rgba(124,58,237,.07)',
+                  }}
+                >
+                  {/* Label */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                    <span style={{ fontSize: '1rem' }}>{icon}</span>
+                    <span style={{ fontSize: '.78rem', fontWeight: 600, color: 'var(--t2)' }}>
+                      {label}
+                    </span>
+                  </div>
+
+                  {/* Score bars */}
+                  {productsForComparison.map((p) => {
+                    const val = safeNumber(p[key as ScoreRowKey]);
+                    const isWinner = winnerId === p.id && val !== null;
+                    return (
+                      <ScoreBar
+                        key={p.id}
+                        value={val}
+                        max={max}
+                        color={color}
+                        isWinner={isWinner}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-10">
-        <BentoGrid>
-          {selected.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </BentoGrid>
-
-        <div className="mt-10">
-          <CompareScoreRadar products={selected} />
-        </div>
-
-        <div className="mt-10 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] shadow-2xl shadow-black/25">
-          <div className="border-b border-white/10 p-6">
-            <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">Score matrix</p>
-            <h2 className="mt-2 text-3xl font-black">Side-by-side details</h2>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 bg-white/[0.03]">
-                  <th className="p-4 text-left text-sm text-slate-400">Signal</th>
-                  {selected.map((product) => (
-                    <th key={product.id} className="p-4 text-left text-sm text-white">{getProductName(product)}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {scoreRows.map((row) => {
-                  const rowWinner = winner(selected, row.key);
-                  return (
-                    <tr key={row.label} className="border-b border-white/10 last:border-0">
-                      <td className="p-4 font-bold text-cyan-200">{row.label}</td>
-                      {selected.map((product) => {
-                        const isWinner = rowWinner?.id === product.id;
-                        return (
-                          <td key={product.id} className="p-4">
-                            <div className={`rounded-2xl border px-4 py-3 ${isWinner ? 'border-cyan-300/40 bg-cyan-300/10' : 'border-white/10 bg-white/[0.03]'}`}>
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="text-xl font-black">{safeText(product[row.key], '—')}</span>
-                                {isWinner ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-cyan-300/10 px-2 py-1 text-xs font-bold text-cyan-200">
-                                    <Trophy className="h-3 w-3" />
-                                    Winner
-                                  </span>
-                                ) : null}
-                              </div>
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.045] p-6">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-6 w-6 text-cyan-300" />
-            <div>
-              <p className="font-bold text-white">Next AI layer</p>
-              <p className="mt-1 text-sm text-slate-400">Later, the RAG chatbot will explain this comparison in natural language.</p>
+      {/* ── AI VERDICT ── */}
+      <section style={{ padding: '2rem 0 3rem' }}>
+        <div className="content-shell">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '1rem',
+              marginBottom: '1rem',
+            }}
+          >
+            {/* Best overall */}
+            <div className="verdict-card">
+              <h3>🏆 Best Overall</h3>
+              <p>
+                {verdict.bestOverall
+                  ? `${getProductName(verdict.bestOverall)} leads with the highest global score.`
+                  : 'Select products to see verdict.'}
+              </p>
+              {verdict.bestOverall && (
+                <Link
+                  href={`/products/${verdict.bestOverall.slug}`}
+                  className="btn-cyan"
+                  style={{ marginTop: '.85rem', borderRadius: 10, fontSize: '.78rem', padding: '.5rem 1.1rem', display: 'inline-flex' }}
+                >
+                  View details →
+                </Link>
+              )}
             </div>
+
+            {/* Summary */}
+            <div className="ai-summary">
+              <div
+                style={{
+                  fontFamily: 'Syne,sans-serif',
+                  fontWeight: 800,
+                  color: '#fff',
+                  marginBottom: '.75rem',
+                  fontSize: '.95rem',
+                }}
+              >
+                🤖 AI Summary
+              </div>
+              <p style={{ fontSize: '.83rem', color: 'var(--t2)', lineHeight: 1.65, margin: 0 }}>
+                {verdict.summary}
+              </p>
+            </div>
+          </div>
+
+          {/* Winner chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.6rem' }}>
+            {[
+              { label: '📸 Best Camera',  product: verdict.bestCamera  },
+              { label: '🔋 Best Battery', product: verdict.bestBattery },
+              { label: '🎮 Best Gaming',  product: verdict.bestGaming  },
+              { label: '📺 Best Display', product: verdict.bestDisplay },
+              { label: '💰 Best Value',   product: verdict.bestValue   },
+            ].map(({ label, product }) =>
+              product ? (
+                <div
+                  key={label}
+                  className="glass"
+                  style={{ borderRadius: 999, padding: '.4rem 1rem', display: 'flex', alignItems: 'center', gap: '.5rem' }}
+                >
+                  <span style={{ fontSize: '.72rem', color: 'var(--t3)' }}>{label}:</span>
+                  <span style={{ fontSize: '.78rem', fontWeight: 700, color: 'var(--c)' }}>
+                    {getProductName(product)}
+                  </span>
+                </div>
+              ) : null
+            )}
           </div>
         </div>
       </section>
