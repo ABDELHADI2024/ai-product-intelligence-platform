@@ -1,0 +1,1 @@
+Fixes only ProductCard and Product Detail UI. Upload components/ProductCard.tsx and app/products/[slug]/page.tsx only.
