@@ -1,203 +1,224 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { getProducts, safeNumber, formatPrice } from '@/lib/products'
+import {
+  ArrowRight,
+  BadgeDollarSign,
+  BatteryCharging,
+  Camera,
+  Database,
+  Globe2,
+  LineChart,
+  Search,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Star,
+  Zap,
+  Scale,
+} from 'lucide-react'
+import { getProducts, safeNumber, formatPrice, getProductName } from '@/lib/products'
 import ProductCard from '@/components/ProductCard'
 import BentoGrid from '@/components/BentoGrid'
-import { 
-  Sparkles, 
-  ArrowRight, 
-  Database, 
-  Search, 
-  Scale, 
-  Zap, 
-  ShieldCheck, 
-  Globe,
-  Camera,
-  BatteryCharging,
-  Gamepad2,
-  BadgeDollarSign
-} from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Witflag — AI Smartphone Intelligence',
-  description: 'Structured product intelligence for smartphones. Score-based comparison, recommendations, and buying guides.',
+  description:
+    'Structured product intelligence for smartphones. Score-based comparison, recommendations, smart search, and buying guides.',
 }
 
 export const revalidate = 3600
 
 const GUIDE_CARDS = [
-  { slug: 'best-camera-phones', label: 'Best camera phones', sub: 'Ranked by Witflag scores.', icon: <Camera className="h-6 w-6 text-cyan-400" /> },
-  { slug: 'best-battery-phones', label: 'Best battery phones', sub: 'Ranked by Witflag scores.', icon: <BatteryCharging className="h-6 w-6 text-emerald-400" /> },
-  { slug: 'best-gaming-phones', label: 'Best gaming phones', sub: 'Ranked by Witflag scores.', icon: <Gamepad2 className="h-6 w-6 text-violet-400" /> },
-  { slug: 'best-value-phones', label: 'Best value phones', sub: 'Ranked by Witflag scores.', icon: <BadgeDollarSign className="h-6 w-6 text-amber-400" /> },
+  { slug: 'best-camera-phones', label: 'Best camera phones', sub: 'Ranked by camera and global scores.', icon: Camera, tone: 'cyan' },
+  { slug: 'best-battery-phones', label: 'Best battery phones', sub: 'Built for long daily usage.', icon: BatteryCharging, tone: 'green' },
+  { slug: 'best-gaming-phones', label: 'Best gaming phones', sub: 'Performance, display, and gaming power.', icon: Zap, tone: 'violet' },
+  { slug: 'best-value-phones', label: 'Best value phones', sub: 'Best experience for the money.', icon: BadgeDollarSign, tone: 'amber' },
 ]
 
 const FEATURE_LIST = [
-  { icon: <Database className="h-6 w-6 text-cyan-400" />, title: 'Score-based intelligence', body: '6 decision signals scored using structured product data.' },
-  { icon: <Search className="h-6 w-6 text-violet-400" />, title: 'Smart search', body: 'Natural language search across the full catalog.' },
-  { icon: <Scale className="h-6 w-6 text-emerald-400" />, title: 'Product comparison', body: 'Compare up to 4 products side by side.' },
-  { icon: <Zap className="h-6 w-6 text-amber-400" />, title: 'Data-ready updates', body: 'New products and data updated every day.' },
-  { icon: <ShieldCheck className="h-6 w-6 text-rose-400" />, title: 'Trusted insights', body: 'Objective analysis for smarter buying.' },
-  { icon: <Globe className="h-6 w-6 text-blue-400" />, title: 'International-ready platform', body: 'Multi-currency-ready structure.' },
+  { icon: LineChart, title: 'Score-based intelligence', body: '6 decision signals scored using structured data.', tone: 'cyan' },
+  { icon: Search, title: 'Smart search', body: 'Natural language search across the smartphone catalog.', tone: 'violet' },
+  { icon: Scale, title: 'Product comparison', body: 'Compare products side by side with decision signals.', tone: 'cyan' },
+  { icon: Zap, title: 'Data-ready updates', body: 'Built for continuous product and score updates.', tone: 'amber' },
+  { icon: ShieldCheck, title: 'Trusted insights', body: 'Objective scoring for smarter buying decisions.', tone: 'rose' },
+  { icon: Globe2, title: 'International-ready platform', body: 'Multi-currency-ready structure for global expansion.', tone: 'violet' },
 ]
+
+function scoreTone(score: number | null) {
+  if (score === null) return 'home-score-muted'
+  if (score >= 88) return 'home-score-great'
+  if (score >= 78) return 'home-score-good'
+  if (score >= 68) return 'home-score-mid'
+  return 'home-score-low'
+}
 
 export default async function HomePage() {
   const products = await getProducts(60)
   const topProducts = products.slice(0, 6)
   const featured = products[0]
+  const featuredScore = safeNumber(featured?.global_score)
 
   return (
-    <div className="page relative overflow-hidden pb-24">
-      {/* Background Gradients */}
-      <div className="absolute top-0 -left-1/4 h-[800px] w-[800px] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none" />
-      <div className="absolute top-0 -right-1/4 h-[800px] w-[800px] rounded-full bg-violet-500/10 blur-[120px] pointer-events-none" />
+    <main className="home-page">
+      <div className="home-noise" />
 
-      {/* Hero Section */}
-      <section className="relative mx-auto max-w-7xl px-6 pt-24 pb-16 sm:pt-32 lg:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="hero-badge mx-auto mb-8 animate-fade-in-up">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-            </span>
-            Live from Supabase
-          </div>
-          
-          <h1 className="hero-title mb-6 animate-fade-in-up delay-100">
-            Structured product<br />
-            <span className="text-gradient">intelligence</span><br />
-            for smarter buying.
-          </h1>
-          
-          <p className="hero-sub mx-auto mb-10 animate-fade-in-up delay-200">
-            We score, rank, and compare smartphones using structured product data — so you can buy with confidence.
-          </p>
-          
-          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mb-12 animate-fade-in-up delay-300">
-            <div className="stat-pill"><strong className="text-white">{products.length}+</strong> Products</div>
-            <div className="stat-pill"><strong className="text-white">6</strong> Decision signals</div>
-            <div className="stat-pill"><strong className="text-white">Data-ready</strong> Updates</div>
-            <div className="stat-pill"><strong className="text-white">Real</strong> Supabase data</div>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up delay-400">
-            <Link href="/products" className="btn-primary w-full sm:w-auto px-8 py-4 text-base">
-              Browse Products
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link href="/compare" className="btn-ghost w-full sm:w-auto px-8 py-4 text-base">
-              Compare Now
-            </Link>
-          </div>
-        </div>
+      <section className="home-hero">
+        <div className="home-hero-grid">
+          <div className="home-hero-copy">
+            <div className="home-badge">
+              <span className="home-live-dot" />
+              Live from Supabase
+            </div>
 
-        {/* Featured Product Card */}
-        {featured && (
-          <div className="mx-auto mt-20 max-w-2xl animate-fade-in-up delay-500">
-            <Link href={`/products/${featured.slug || ''}`} className="glass-panel group relative flex items-center gap-6 p-6 transition-all hover:-translate-y-1 hover:border-cyan-500/30 hover:shadow-[0_0_40px_-15px_rgba(34,211,238,0.3)]">
-              <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-cyan-500/10 to-violet-500/10 opacity-0 transition-opacity group-hover:opacity-100" />
-              
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 group-hover:bg-cyan-500/10 transition-colors">
-                <Sparkles className="h-8 w-8 text-cyan-400" />
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold uppercase tracking-widest text-cyan-400">{featured.brand}</span>
-                  <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-bold text-violet-300 border border-violet-500/30">New Data</span>
-                </div>
-                <h3 className="truncate text-lg font-bold text-white group-hover:text-cyan-50">{featured.full_name || featured.model}</h3>
-                <p className="text-sm text-slate-400 mt-1">{formatPrice(featured)}</p>
-              </div>
-              
-              <div className="text-center pr-2">
-                <div className="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors tracking-tight">
-                  {safeNumber(featured.global_score) ?? '—'}
-                </div>
-                <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                  Global Score
-                </div>
-              </div>
-            </Link>
-          </div>
-        )}
-      </section>
+            <h1 className="home-title">
+              AI-powered smartphone <span>intelligence</span>
+            </h1>
 
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 flex flex-col gap-24">
-        {/* Guides Section */}
-        <section>
-          <div className="section-header">
-            <h2 className="section-title text-2xl sm:text-3xl">Start by your need</h2>
-            <Link href="/best" className="section-link group flex items-center gap-1">
-              View all guides <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {GUIDE_CARDS.map(g => (
-              <Link key={g.slug} href={`/best/${g.slug}`} className="glass-panel p-5 hover:border-cyan-500/30 hover:bg-white/[0.03] transition-all hover:-translate-y-1">
-                <div className="mb-4 inline-flex rounded-xl bg-white/5 p-3 border border-white/5">
-                  {g.icon}
-                </div>
-                <h3 className="mb-1 text-base font-bold text-white">{g.label}</h3>
-                <p className="text-sm text-slate-400">{g.sub}</p>
+            <p className="home-subtitle">
+              We score, rank, and compare smartphones using real product data —
+              so you can buy with confidence.
+            </p>
+
+            <div className="home-stats">
+              <div><strong>{products.length}+</strong><span>Products</span></div>
+              <div><strong>6</strong><span>Decision signals</span></div>
+              <div><strong>Data-ready</strong><span>Updates</span></div>
+              <div><strong>Real</strong><span>Supabase data</span></div>
+            </div>
+
+            <div className="home-actions">
+              <Link href="/products" className="home-btn home-btn-primary">
+                Browse Products <ArrowRight className="h-4 w-4" />
               </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Scores You Can Trust */}
-        <section>
-          <div className="section-header mb-6">
-            <h2 className="section-title text-2xl sm:text-3xl">Scores You Can Trust</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {[
-              { label: 'Performance', sub: 'Raw power and speed', color: 'bg-cyan-400', shadow: 'shadow-[0_0_20px_-5px_rgba(34,211,238,0.4)]' },
-              { label: 'Display', sub: 'Screen quality and refresh rate', color: 'bg-violet-400', shadow: 'shadow-[0_0_20px_-5px_rgba(139,92,246,0.4)]' },
-              { label: 'Camera', sub: 'Photo and video quality', color: 'bg-rose-400', shadow: 'shadow-[0_0_20px_-5px_rgba(251,113,133,0.4)]' },
-              { label: 'Battery', sub: 'Battery life and charging', color: 'bg-emerald-400', shadow: 'shadow-[0_0_20px_-5px_rgba(52,211,153,0.4)]' },
-              { label: 'Value', sub: 'Best experience for your money', color: 'bg-amber-400', shadow: 'shadow-[0_0_20px_-5px_rgba(251,191,36,0.4)]' },
-            ].map(s => (
-              <div key={s.label} className="glass-panel p-5 relative overflow-hidden group">
-                <div className={`absolute top-0 right-0 h-16 w-16 -mr-8 -mt-8 rounded-full opacity-20 ${s.color} blur-xl`} />
-                <div className={`mb-4 h-2.5 w-2.5 rounded-full ${s.color} ${s.shadow}`} />
-                <h3 className="mb-1 text-sm font-bold text-white">{s.label}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">{s.sub}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Live products bento */}
-        <section>
-          <div className="section-header mb-8">
-            <h2 className="section-title text-2xl sm:text-3xl">Live Insights</h2>
-            <Link href="/products" className="section-link group flex items-center gap-1">
-              Explore catalog <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </div>
-          <BentoGrid products={topProducts} />
-        </section>
-
-        {/* Features list */}
-        <section>
-          <div className="glass-panel rounded-3xl p-8 lg:p-12 border-t border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
-              {FEATURE_LIST.map(f => (
-                <div key={f.title} className="flex gap-5 items-start">
-                  <div className="flex shrink-0 h-12 w-12 items-center justify-center rounded-xl bg-white/5 border border-white/10">
-                    {f.icon}
-                  </div>
-                  <div>
-                    <h3 className="mb-2 text-sm font-bold text-white">{f.title}</h3>
-                    <p className="text-sm text-slate-400 leading-relaxed">{f.body}</p>
-                  </div>
-                </div>
-              ))}
+              <Link href="/compare" className="home-btn home-btn-ghost">
+                Compare Now <LineChart className="h-4 w-4" />
+              </Link>
             </div>
           </div>
-        </section>
-      </div>
-    </div>
+
+          {featured ? (
+            <Link href={`/products/${featured.slug || ''}`} className="home-featured-card">
+              <div className="home-featured-glow" />
+              <div className="home-featured-content">
+                <div className="home-featured-left">
+                  <span className="home-chip">Featured</span>
+                  <h2>{getProductName(featured)}</h2>
+                  <p className="home-brand">{featured.brand || 'Smartphone'}</p>
+
+                  <div className="home-rating">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star key={star} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    ))}
+                    <span>4.8</span>
+                  </div>
+
+                  <p className="home-price">{formatPrice(featured)}</p>
+
+                  <p className="home-featured-desc">
+                    High-ranking smartphone profile with strong decision signals
+                    across camera, performance, value, and daily usage.
+                  </p>
+
+                  <span className="home-btn home-btn-ghost home-small-btn">
+                    View Details <ArrowRight className="h-4 w-4" />
+                  </span>
+                </div>
+
+                <div className="home-device-stage">
+                  <div className="home-device-orbit" />
+
+                  {featured.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={featured.image_url}
+                      alt={getProductName(featured)}
+                      className="home-device-img"
+                    />
+                  ) : (
+                    <div className="home-device-placeholder">
+                      <Smartphone className="h-20 w-20" />
+                    </div>
+                  )}
+
+                  <div className="home-score-box">
+                    <div className={`home-score-ring ${scoreTone(featuredScore)}`}>
+                      {featuredScore === null ? '—' : Math.round(featuredScore)}
+                    </div>
+                    <div>
+                      <strong>Global Score</strong>
+                      <span>Excellent</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="home-feature-strip">
+        {FEATURE_LIST.map((item) => {
+          const Icon = item.icon
+          return (
+            <div key={item.title} className="home-feature-item">
+              <div className={`home-icon home-icon-${item.tone}`}>
+                <Icon className="h-7 w-7" />
+              </div>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </div>
+          )
+        })}
+      </section>
+
+      <section className="home-section">
+        <div className="home-section-head">
+          <div>
+            <h2>Start by your need</h2>
+            <p>Browse buying guides to find the perfect phone for what matters most.</p>
+          </div>
+          <Link href="/best" className="home-section-link">
+            View all guides <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="home-guide-grid">
+          {GUIDE_CARDS.map((guide) => {
+            const Icon = guide.icon
+            return (
+              <Link key={guide.slug} href={`/best/${guide.slug}`} className={`home-guide-card home-guide-${guide.tone}`}>
+                <div className="home-guide-bg" />
+                <div className={`home-icon home-icon-${guide.tone}`}>
+                  <Icon className="h-6 w-6" />
+                </div>
+                <h3>{guide.label}</h3>
+                <p>{guide.sub}</p>
+                <span>Explore <ArrowRight className="h-4 w-4" /></span>
+              </Link>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="home-section">
+        <div className="home-section-head">
+          <div>
+            <h2>Top picks for you</h2>
+            <p>Discover the highest scoring smartphones from your live product data.</p>
+          </div>
+          <Link href="/products" className="home-section-link">
+            View all products <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        <BentoGrid products={topProducts} />
+      </section>
+
+      <section className="home-section home-bottom-note">
+        <div><Database className="h-5 w-5 text-cyan-300" /><span>Real structured data</span></div>
+        <div><Sparkles className="h-5 w-5 text-violet-300" /><span>6 decision signals</span></div>
+        <div><Globe2 className="h-5 w-5 text-cyan-300" /><span>International-ready</span></div>
+      </section>
+    </main>
   )
 }
