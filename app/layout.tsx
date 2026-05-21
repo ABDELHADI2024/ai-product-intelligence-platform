@@ -6,12 +6,14 @@ import Footer from '@/components/Footer'
 export const metadata: Metadata = {
   title: 'Witflag — AI Smartphone Intelligence',
   description:
-    'AI-native smartphone intelligence platform for product search, comparisons, recommendations, scores, and buying guides.',
+    'Structured smartphone intelligence for product search, comparisons, recommendations, and buying guides.',
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
     <html lang="en">
       <body>
