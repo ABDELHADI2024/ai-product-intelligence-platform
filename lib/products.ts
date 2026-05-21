@@ -187,11 +187,15 @@ export function productSlug(product: Product) {
   return getProductName(product).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
 
-export function formatPrice(product?: Product | null) {
-  if (!product) return 'Price TBA'
-  const usd = safeNumber(product.price_usd)
-  const eur = safeNumber(product.price_eur)
-  const mad = safeNumber(product.price_mad)
+export function formatPrice(value?: Product | string | number | null) {
+  if (value === null || value === undefined) return 'Price TBA'
+  if (typeof value !== 'object') {
+    const price = safeNumber(value)
+    return price !== null ? `€${price.toLocaleString('en-US')}` : 'Price TBA'
+  }
+  const usd = safeNumber(value.price_usd)
+  const eur = safeNumber(value.price_eur)
+  const mad = safeNumber(value.price_mad)
   if (usd !== null) return `$${usd.toLocaleString('en-US')}`
   if (eur !== null) return `€${eur.toLocaleString('en-US')}`
   if (mad !== null) return `${mad.toLocaleString('en-US')} MAD`
@@ -257,4 +261,82 @@ export function getBestProducts(products: Product[], guide: string) {
     : guide.includes('value') ? 'value_score'
     : 'global_score'
   return rankProducts(products, key as keyof Product)
+}
+
+
+export type UseCase = 'camera' | 'battery' | 'gaming' | 'value' | 'balanced'
+export type SearchIntent = {
+  rawQuery: string
+  useCase: UseCase
+  budget: number | null
+  brand: string | null
+  explanation: string
+}
+export type SearchResult = { product: Product; matchScore: number; reason: string }
+
+export function getBestUseCase(product: Product): string {
+  const signals = [
+    ['camera', safeNumber(product.camera_score)],
+    ['battery', safeNumber(product.battery_score)],
+    ['gaming', safeNumber(product.gaming_score)],
+    ['display', safeNumber(product.display_score)],
+    ['value', safeNumber(product.value_score)]
+  ] as const
+  const best = [...signals].sort((a, b) => (b[1] || 0) - (a[1] || 0))[0]
+  return best?.[0] || 'balanced'
+}
+
+export function detectSearchIntent(query: string): SearchIntent {
+  const rawQuery = query.trim()
+  const lower = rawQuery.toLowerCase()
+  let useCase: UseCase = 'balanced'
+  if (/(camera|photo|video|selfie)/i.test(lower)) useCase = 'camera'
+  if (/(battery|autonomy|charge|5000mah)/i.test(lower)) useCase = 'battery'
+  if (/(gaming|game|performance|fps|chipset)/i.test(lower)) useCase = 'gaming'
+  if (/(cheap|budget|value|affordable|under|price)/i.test(lower)) useCase = 'value'
+  const budgetMatch = lower.match(/(?:under|below|less than|max|budget)\s*[€$]?(\d{2,5})|[€$]\s?(\d{2,5})/)
+  const budget = budgetMatch ? Number(budgetMatch[1] || budgetMatch[2]) : null
+  const knownBrands = ['apple','samsung','xiaomi','redmi','poco','oneplus','oppo','vivo','honor','huawei','realme','google','motorola','nothing','asus','sony','nokia','infinix','tecno']
+  const brand = knownBrands.find(item => lower.includes(item)) || null
+  const explanation = `${useCase} intent · ${budget ? `budget under ${budget}` : 'no strict budget'} · ${brand || 'all brands'}`
+  return { rawQuery, useCase, budget, brand, explanation }
+}
+
+function scoreForUseCase(product: Product, useCase: UseCase): number {
+  const global = safeNumber(product.global_score) || 0
+  const camera = safeNumber(product.camera_score) || 0
+  const battery = safeNumber(product.battery_score) || 0
+  const gaming = safeNumber(product.gaming_score) || 0
+  const display = safeNumber(product.display_score) || 0
+  const value = safeNumber(product.value_score) || 0
+  if (useCase === 'camera') return camera * 0.5 + global * 0.25 + display * 0.15 + value * 0.1
+  if (useCase === 'battery') return battery * 0.5 + global * 0.25 + value * 0.15 + display * 0.1
+  if (useCase === 'gaming') return gaming * 0.45 + global * 0.25 + display * 0.15 + battery * 0.15
+  if (useCase === 'value') return value * 0.5 + global * 0.25 + battery * 0.15 + camera * 0.1
+  return global * 0.5 + camera * 0.15 + battery * 0.15 + gaming * 0.1 + display * 0.1
+}
+
+export function rankSearchResults(products: Product[], intent: SearchIntent): SearchResult[] {
+  const terms = intent.rawQuery.toLowerCase().split(/\s+/).filter(term => term.length > 1)
+  return products
+    .filter(product => {
+      const price = safeNumber(product.price_usd) ?? safeNumber(product.price_eur)
+      if (intent.budget && price !== null && price > intent.budget) return false
+      if (intent.brand && !safeText(product.brand, '').toLowerCase().includes(intent.brand)) return false
+      return true
+    })
+    .map(product => {
+      const haystack = [product.brand, product.model, product.full_name, product.chipset, product.rear_camera, product.content_summary_en, product.normalized_category].filter(Boolean).join(' ').toLowerCase()
+      const textScore = terms.reduce((score, term) => score + (haystack.includes(term) ? 6 : 0), 0)
+      const matchScore = Math.round(Math.min(100, scoreForUseCase(product, intent.useCase) * 0.9 + textScore))
+      return { product, matchScore, reason: `${getProductName(product)} matches your ${intent.useCase} search using product scores, price, and specifications.` }
+    })
+    .sort((a, b) => b.matchScore - a.matchScore)
+}
+
+export async function smartSearchProducts(query: string, limit = 24): Promise<{ intent: SearchIntent; results: SearchResult[] }> {
+  const intent = detectSearchIntent(query)
+  const products = await getProducts(300)
+  const ranked = rankSearchResults(products, intent).slice(0, limit)
+  return { intent, results: ranked }
 }

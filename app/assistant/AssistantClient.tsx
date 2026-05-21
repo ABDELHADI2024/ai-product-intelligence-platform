@@ -1,5 +1,6 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+
+import { useEffect, useRef, useState } from 'react'
 import { smartSearchProducts, safeText, safeNumber, formatPrice, type Product } from '@/lib/products'
 
 type Msg = { role: 'user' | 'ai'; text: string }
@@ -8,62 +9,42 @@ const STARTERS = [
   'What is the best camera phone under €500?',
   'Compare Xiaomi vs Samsung gaming performance',
   'Which phone has the best battery life?',
-  'Best foldable phone right now?',
+  'Best value flagship right now?'
 ]
+
+function productName(product: Product) {
+  return safeText(product.full_name || [product.brand, product.model].filter(Boolean).join(' '), 'Smartphone')
+}
 
 function buildReply(query: string, products: Product[]): string {
   const q = query.toLowerCase()
-  if (!products.length) {
-    return `I searched for "${query}" but found no matching products in the catalog. Try different keywords like a brand name or feature.`
-  }
-  const top = products.slice(0, 3)
-  const names = top.map(p => {
-    const n = safeText(p.full_name || p.model)
-    const score = safeNumber(p.global_score)
-    const price = formatPrice(p.price_eur)
-    return `**${n}** (${price}${score ? ` · score ${score}` : ''})`
+  if (!products.length) return `I searched for "${query}" but found no matching products. Try a brand, budget, or feature.`
+  const sorted = [...products].sort((a, b) => {
+    const key = q.includes('camera') ? 'camera_score' : q.includes('battery') ? 'battery_score' : q.includes('gaming') || q.includes('game') ? 'gaming_score' : q.includes('value') || q.includes('budget') ? 'value_score' : 'global_score'
+    return (safeNumber(b[key]) || 0) - (safeNumber(a[key]) || 0)
   })
-
-  if (q.includes('camera')) {
-    const sorted = [...products].sort((a, b) => (safeNumber(b.camera_score) ?? 0) - (safeNumber(a.camera_score) ?? 0))
-    const best = sorted[0]
-    return `For camera quality, **${safeText(best.full_name || best.model)}** tops the list with a camera score of ${safeNumber(best.camera_score)}. Other strong options: ${names.slice(0, 2).join(', ')}.`
-  }
-  if (q.includes('battery')) {
-    const sorted = [...products].sort((a, b) => (safeNumber(b.battery_score) ?? 0) - (safeNumber(a.battery_score) ?? 0))
-    const best = sorted[0]
-    return `For battery life, **${safeText(best.full_name || best.model)}** scores highest at ${safeNumber(best.battery_score)}. Also consider: ${names.slice(1, 3).join(', ')}.`
-  }
-  if (q.includes('gaming') || q.includes('game')) {
-    const sorted = [...products].sort((a, b) => (safeNumber(b.gaming_score) ?? 0) - (safeNumber(a.gaming_score) ?? 0))
-    const best = sorted[0]
-    return `Top gaming phone: **${safeText(best.full_name || best.model)}** (gaming score: ${safeNumber(best.gaming_score)}). Alternatives: ${names.slice(1, 3).join(', ')}.`
-  }
-
-  return `I found ${products.length} products matching "${query}". Top picks:\n\n${names.join('\n')}\n\nWould you like to compare any of these?`
+  const top = sorted.slice(0, 3).map((p, i) => `${i + 1}. ${productName(p)} — ${formatPrice(p)} · score ${safeNumber(p.global_score) ?? 'pending'}`)
+  return `Here are the best matches for "${query}":\n\n${top.join('\n')}\n\nI ranked them using price, global score, and the strongest decision signal in your question.`
 }
 
 export default function AssistantClient() {
-  const [msgs, setMsgs] = useState<Msg[]>([
-    { role: 'ai', text: 'Hi! I can help you find the right smartphone based on scores, budget, camera, battery, or gaming. What are you looking for?' }
-  ])
+  const [msgs, setMsgs] = useState<Msg[]>([{ role: 'ai', text: 'Hi! I can help you find the right smartphone using structured product scores.' }])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const endRef = useRef<HTMLDivElement>(null)
+  const endRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
 
-  const send = async (text: string) => {
-    if (!text.trim() || loading) return
+  async function send(text: string) {
+    const clean = text.trim()
+    if (!clean || loading) return
     setInput('')
-    setMsgs(prev => [...prev, { role: 'user', text }])
+    setMsgs(prev => [...prev, { role: 'user', text: clean }])
     setLoading(true)
-
     try {
-      const searchResponse = await smartSearchProducts(text)
-      const products = searchResponse.results.map((result) => result.product)
-      const reply = buildReply(text, products)
-      setMsgs(prev => [...prev, { role: 'ai', text: reply }])
+      const response = await smartSearchProducts(clean)
+      const products = response.results.map(result => result.product)
+      setMsgs(prev => [...prev, { role: 'ai', text: buildReply(clean, products) }])
     } catch {
       setMsgs(prev => [...prev, { role: 'ai', text: 'Something went wrong. Please try again.' }])
     } finally {
@@ -72,69 +53,22 @@ export default function AssistantClient() {
   }
 
   return (
-    <div className="page-sm">
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Product Assistant</div>
-        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)', marginBottom: 8 }}>
-          Ask the <span style={{ color: 'var(--accent)' }}>Witflag</span> Assistant
-        </h1>
-        <p style={{ color: 'var(--text-2)', fontSize: 14 }}>
-          Recommendations powered by structured product data — not guesswork.
-        </p>
-      </div>
-
-      {/* Starter pills */}
-      {msgs.length <= 1 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
-          {STARTERS.map(s => (
-            <button
-              key={s}
-              className="chip"
-              style={{ cursor: 'pointer', padding: '6px 14px' }}
-              onClick={() => send(s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="chat-wrap">
-        <div className="chat-messages">
-          {msgs.map((m, i) => (
-            <div key={i} className={`chat-msg${m.role === 'user' ? ' user' : ''}`}>
-              <div className={`chat-avatar${m.role === 'ai' ? ' ai' : ' user-av'}`}>
-                {m.role === 'ai' ? '🤖' : '👤'}
-              </div>
-              <div className={`chat-bubble ${m.role === 'ai' ? 'ai' : 'user'}`}
-                dangerouslySetInnerHTML={{ __html: m.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }}
-              />
-            </div>
-          ))}
-          {loading && (
-            <div className="chat-msg">
-              <div className="chat-avatar ai">🤖</div>
-              <div className="chat-bubble ai" style={{ color: 'var(--text-3)' }}>Searching product data…</div>
-            </div>
-          )}
+    <section className="wf-section">
+      <div className="wf-chat-card">
+        <div className="wf-chip">Product Assistant</div>
+        <h1>Ask the Witflag Assistant</h1>
+        <p>Recommendations powered by structured product data.</p>
+        {msgs.length <= 1 && <div className="wf-prompt-list">{STARTERS.map(s => <button className="wf-prompt" key={s} onClick={() => send(s)}>{s}</button>)}</div>}
+        <div className="wf-chat-stream">
+          {msgs.map((m, i) => <div className={m.role === 'ai' ? 'wf-message wf-message-ai' : 'wf-message'} key={`${m.role}-${i}`}>{m.text}</div>)}
+          {loading && <div className="wf-message wf-message-ai">Searching product data…</div>}
           <div ref={endRef} />
         </div>
-
-        <div className="chat-input-row">
-          <input
-            type="text"
-            className="chat-input"
-            placeholder="Ask me about smartphones…"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && send(input)}
-            disabled={loading}
-          />
-          <button className="btn btn-primary" onClick={() => send(input)} disabled={loading || !input.trim()}>
-            Send
-          </button>
+        <div className="wf-searchbar wf-chat-input">
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') send(input) }} placeholder="Ask for camera, battery, gaming, value…" disabled={loading} />
+          <button onClick={() => send(input)} disabled={loading || !input.trim()}>Send</button>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
