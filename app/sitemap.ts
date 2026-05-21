@@ -4,7 +4,13 @@ import { getProducts } from '@/lib/products'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://witflag.com'
 
-  const products = await getProducts()
+  let products: Awaited<ReturnType<typeof getProducts>> = []
+
+  try {
+    products = await getProducts()
+  } catch {
+    products = []
+  }
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
@@ -22,7 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
 
   const productRoutes: MetadataRoute.Sitemap = products
-    .filter((product) => Boolean(product.slug))
+    .filter((product) => Boolean(product?.slug))
     .map((product) => ({
       url: `${baseUrl}/products/${product.slug}`,
       lastModified: new Date(),
