@@ -220,8 +220,58 @@ export async function searchProducts(query: string, limit = 60): Promise<Product
   return rankProducts(filtered, key).slice(0, limit)
 }
 
-export async function smartSearchProducts(query: string, limit = 6): Promise<Product[]> {
-  return searchProducts(query, limit)
+export type SmartSearchResult = {
+  product: Product
+  score: number
+  reason: string
+}
+
+export type SmartSearchResponse = {
+  query: string
+  intent: SearchIntent
+  results: SmartSearchResult[]
+}
+
+export async function smartSearchProducts(query: string, limit = 6): Promise<SmartSearchResponse> {
+  const intent = detectSearchIntent(query)
+  const key = getIntentScoreKey(intent)
+  const products = await searchProducts(query, limit)
+
+  return {
+    query,
+    intent,
+    results: products.slice(0, limit).map((product) => ({
+      product,
+      score: safeNumber(product[key]) || safeNumber(product.global_score) || 0,
+      reason: getRecommendationReason(product, intent)
+    }))
+  }
+}
+
+export function getRecommendationReason(product: Product, intent: SearchIntent | string = 'general'): string {
+  const name = getProductName(product)
+  const normalizedIntent = String(intent).toLowerCase() as SearchIntent
+
+  if (normalizedIntent === 'camera') {
+    return `${name} is recommended because its camera score and imaging profile are strong for photos, video, and everyday content.`
+  }
+  if (normalizedIntent === 'battery') {
+    return `${name} is recommended because its battery profile is strong for long daily use.`
+  }
+  if (normalizedIntent === 'gaming') {
+    return `${name} is recommended because its performance and gaming scores are strong for demanding apps and games.`
+  }
+  if (normalizedIntent === 'performance') {
+    return `${name} is recommended because its chipset and performance score make it a fast option.`
+  }
+  if (normalizedIntent === 'value') {
+    return `${name} is recommended because it has a strong balance between price, score, and features.`
+  }
+  if (normalizedIntent === 'display') {
+    return `${name} is recommended because its display profile is strong for media, reading, and daily use.`
+  }
+
+  return `${name} is recommended because it has one of the strongest overall intelligence scores in the current product data.`
 }
 
 export function getBestProducts(products: Product[], guide: string): Product[] {
