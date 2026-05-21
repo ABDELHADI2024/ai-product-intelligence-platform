@@ -340,3 +340,86 @@ export async function smartSearchProducts(query: string, limit = 24): Promise<{ 
   const ranked = rankSearchResults(products, intent).slice(0, limit)
   return { intent, results: ranked }
 }
+
+export function formatScore(value?: string | number | null): string {
+  const score = safeNumber(value)
+  return score !== null ? `${Math.round(score)}/100` : 'Pending'
+}
+
+export type ComparisonWinner = {
+  label: string
+  key: keyof Product
+  winner: Product | null
+  value: number | null
+}
+
+function winnerByScore(products: Product[], key: keyof Product, label: string): ComparisonWinner {
+  const ranked = [...products]
+    .map((product) => ({ product, value: safeNumber(product[key]) }))
+    .filter((item): item is { product: Product; value: number } => item.value !== null)
+    .sort((a, b) => b.value - a.value)
+
+  const top = ranked[0]
+  return {
+    label,
+    key,
+    winner: top?.product || null,
+    value: top?.value ?? null
+  }
+}
+
+export function getComparisonWinners(products: Product[]): ComparisonWinner[] {
+  return [
+    winnerByScore(products, 'global_score', 'Best overall'),
+    winnerByScore(products, 'camera_score', 'Best camera'),
+    winnerByScore(products, 'battery_score', 'Best battery'),
+    winnerByScore(products, 'display_score', 'Best display'),
+    winnerByScore(products, 'performance_score', 'Best performance'),
+    winnerByScore(products, 'value_score', 'Best value')
+  ]
+}
+
+export type ComparisonVerdict = {
+  winner: Product | null
+  summary: string
+  reasons: string[]
+}
+
+export function getComparisonVerdict(products: Product[]): ComparisonVerdict {
+  if (!products.length) {
+    return {
+      winner: null,
+      summary: 'Select smartphones to generate a comparison verdict.',
+      reasons: []
+    }
+  }
+
+  const ranked = rankProducts(products, 'global_score')
+  const winner = ranked[0] || null
+  const name = getProductName(winner)
+  const score = safeNumber(winner?.global_score)
+  const bestUseCase = winner ? getBestUseCase(winner) : 'balanced'
+
+  return {
+    winner,
+    summary: `${name} is the strongest recommendation in this comparison${score !== null ? ` with a ${Math.round(score)}/100 global score` : ''}. It looks best for ${bestUseCase} users based on the available product intelligence signals.`,
+    reasons: [
+      `Best overall profile: ${name}`,
+      `Strongest use case: ${bestUseCase}`,
+      `Price position: ${formatPrice(winner)}`
+    ]
+  }
+}
+
+export function getProductImage(product?: Product | null): string | null {
+  return product?.image_url || product?.image || product?.thumbnail_url || null
+}
+
+export function getScoreColor(value?: string | number | null): string {
+  const score = safeNumber(value)
+  if (score === null) return 'neutral'
+  if (score >= 88) return 'excellent'
+  if (score >= 78) return 'strong'
+  if (score >= 68) return 'balanced'
+  return 'entry'
+}
