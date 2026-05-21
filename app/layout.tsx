@@ -1,32 +1,21 @@
-import type { Metadata } from 'next'
-import './globals.css'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+import type { Metadata } from 'next';
+import './globals.css';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://witflag.com'),
-  title: {
-    default: 'Witflag — AI Smartphone Intelligence',
-    template: '%s | Witflag',
-  },
-  description: 'AI-native smartphone intelligence platform for product search, comparisons, recommendations, smart scores, and buying guides.',
-  openGraph: {
-    title: 'Witflag — AI Smartphone Intelligence',
-    description: 'Score, rank, compare, and discover smartphones using real product data and AI-native decision intelligence.',
-    type: 'website',
-  },
-}
+  title: 'Witflag — AI Smartphone Intelligence Platform',
+  description: 'AI-native smartphone intelligence platform for search, comparison, recommendations, scores, and buying guides.',
+};
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <div className="wf-app">
-          <Header />
-          {children}
-          <Footer />
-        </div>
+        <Header />
+        {children}
+        <Footer />
       </body>
     </html>
-  )
+  );
 }

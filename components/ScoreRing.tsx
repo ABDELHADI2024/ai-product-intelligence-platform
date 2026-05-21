@@ -1,19 +1,20 @@
-import { formatScore, safeNumber, scoreLabel } from '@/lib/products'
+import { safeNumber } from '@/lib/products';
 
 type ScoreRingProps = {
-  value?: string | number | null
-  size?: 'sm' | 'md' | 'lg'
-  label?: string
-}
+  value?: string | number | null;
+  score?: string | number | null;
+  size?: 'sm' | 'md' | 'lg';
+  label?: string;
+};
 
-export default function ScoreRing({ value, size = 'md', label }: ScoreRingProps) {
-  const score = safeNumber(value)
-  const normalized = score === null ? 0 : Math.max(0, Math.min(100, Math.round(score)))
+export default function ScoreRing({ value, score, size = 'md', label }: ScoreRingProps) {
+  const parsed = safeNumber(value ?? score);
+  const n = parsed ?? 0;
+  const tier = n >= 90 ? 'great' : n >= 80 ? 'good' : n >= 70 ? 'mid' : 'low';
 
   return (
-    <div className={`wf-score-ring wf-score-ring-${size}`} style={{ ['--score' as string]: normalized }} aria-label={`Score ${formatScore(value)}`}>
-      <span>{formatScore(value)}</span>
-      {label ? <small>{label}</small> : <em>{scoreLabel(value)}</em>}
+    <div className={`score-ring ${size} ${tier}`} aria-label={`${label || 'Score'} ${Math.round(n)} out of 100`}>
+      {parsed === null ? '—' : Math.round(n)}
     </div>
-  )
+  );
 }

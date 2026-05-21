@@ -1,6 +1,6 @@
 {
-  "name": "witflag-ultra-ui",
-  "version": "2.0.0",
+  "name": "witflag-ai-product-intelligence",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

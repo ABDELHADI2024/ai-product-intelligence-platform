@@ -1,46 +1,45 @@
-import Link from 'next/link'
-import { BrainCircuit, Menu, Search, Sparkles } from 'lucide-react'
+import Link from 'next/link';
+import { BrainCircuit, Search, Sparkles } from 'lucide-react';
 
 const nav = [
-  { href: '/products', label: 'Products' },
-  { href: '/compare', label: 'Compare' },
-  { href: '/assistant', label: 'Assistant' },
-  { href: '/guides', label: 'Guides' },
-  { href: '/brands', label: 'Brands' },
-]
+  ['Products', '/products'],
+  ['Search', '/search'],
+  ['Compare', '/compare'],
+  ['Assistant', '/assistant'],
+  ['Best', '/best'],
+  ['Brands', '/brands'],
+];
 
 export default function Header() {
   return (
-    <header className="wf-header-wrap">
-      <div className="wf-header">
-        <Link href="/" className="wf-brand" aria-label="Witflag home">
-          <span className="wf-logo"><BrainCircuit size={22} /></span>
-          <span>
-            <b>WITFLAG</b>
-            <small>AI product intelligence</small>
-          </span>
+    <header className="nav-wrap">
+      <div className="content-shell nav-inner">
+        <Link href="/" className="nav-brand">
+          <div className="logo-mark">W</div>
+          <div>
+            <div className="nav-brand-title">Witflag</div>
+            <div className="nav-brand-sub">AI Smartphone Intelligence</div>
+          </div>
         </Link>
 
-        <nav className="wf-nav" aria-label="Main navigation">
-          {nav.map((item) => (
-            <Link key={item.href} href={item.href}>{item.label}</Link>
+        <nav className="nav-links">
+          {nav.map(([label, href]) => (
+            <Link key={href} href={href} className="nav-link">
+              {label}
+            </Link>
           ))}
         </nav>
 
-        <div className="wf-header-actions">
-          <Link href="/search" className="wf-search-pill">
-            <Search size={15} />
-            <span>Search products</span>
-            <kbd>⌘K</kbd>
+        <div className="flex items-center gap-2">
+          <Link href="/search" className="btn-ghost" aria-label="Search">
+            <Search className="h-4 w-4" />
           </Link>
-          <Link href="/assistant" className="wf-ai-pill">
-            <Sparkles size={15} /> Ask AI
+          <Link href="/assistant" className="nav-cta">
+            <Sparkles className="h-4 w-4" />
+            Assistant
           </Link>
-          <button className="wf-mobile-menu" type="button" aria-label="Open menu">
-            <Menu size={20} />
-          </button>
         </div>
       </div>
     </header>
-  )
+  );
 }
