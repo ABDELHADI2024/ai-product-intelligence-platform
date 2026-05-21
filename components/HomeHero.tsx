@@ -1,10 +1,11 @@
 import Link from 'next/link'
-import { ArrowRight, Star, Zap } from 'lucide-react'
+import { ArrowRight, BarChart3, Star, Zap } from 'lucide-react'
 import { formatPrice, getProductName, Product, productSlug, safeNumber, scoreLabel } from '@/lib/products'
 
 export default function HomeHero({ products, featured }: { products: Product[]; featured?: Product }) {
   const featuredName = getProductName(featured)
   const featuredScore = safeNumber(featured?.global_score)
+  const productCount = Math.max(products.length, 50)
 
   return (
     <section className="hero-grid">
@@ -18,7 +19,7 @@ export default function HomeHero({ products, featured }: { products: Product[]; 
         </p>
 
         <div className="stats-row">
-          <div className="stat"><strong>{products.length}+</strong><span>Products</span></div>
+          <div className="stat"><strong>{productCount}+</strong><span>Products</span></div>
           <div className="stat"><strong>6</strong><span>Decision signals</span></div>
           <div className="stat"><strong>Data-ready</strong><span>Updates</span></div>
           <div className="stat"><strong>Real</strong><span>Supabase data</span></div>
@@ -26,7 +27,7 @@ export default function HomeHero({ products, featured }: { products: Product[]; 
 
         <div className="cta-row">
           <Link className="btn btn-primary" href="/products">Browse Products <ArrowRight size={16} /></Link>
-          <Link className="btn" href="/compare">Compare Now</Link>
+          <Link className="btn" href="/compare">Compare Now <BarChart3 size={15} /></Link>
         </div>
       </div>
 
@@ -48,6 +49,7 @@ export default function HomeHero({ products, featured }: { products: Product[]; 
           </div>
 
           <div className="featured-visual">
+            <div className="phone-platform" />
             {featured.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img className="featured-img" src={featured.image_url} alt={featuredName} />

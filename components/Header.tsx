@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import { BarChart3, Search, Sparkles } from 'lucide-react';
+import { Search, Sun } from 'lucide-react';
 
 const nav = [
-  ['Browse', '/products'],
-  ['Search', '/search'],
+  ['Products', '/products'],
   ['Compare', '/compare'],
   ['Guides', '/best'],
+  ['About', '/about'],
 ];
 
 export default function Header() {
@@ -28,16 +28,14 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <Link href="/search" className="btn-ghost" aria-label="Search">
-            <Search className="h-4 w-4" />
-          </Link>
-          <Link href="/compare" className="btn-ghost nav-compare" aria-label="Compare">
-            <BarChart3 className="h-4 w-4" />
-          </Link>
-          <Link href="/assistant" className="nav-cta">
-            <Sparkles className="h-4 w-4" />
-            Ask AI
+        <div className="nav-actions">
+          <form action="/search" method="GET" className="nav-search">
+            <Search size={15} />
+            <input name="q" placeholder="Search smartphones..." />
+            <span className="kbd">⌘K</span>
+          </form>
+          <Link href="/assistant" className="theme-btn" aria-label="Ask assistant">
+            <Sun size={16} />
           </Link>
         </div>
       </div>
