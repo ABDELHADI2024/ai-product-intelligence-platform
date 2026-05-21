@@ -1,32 +1,38 @@
 import Link from 'next/link'
-import { Search, Sparkles } from 'lucide-react'
+import { Search, Sparkles, SunMedium } from 'lucide-react'
+
+const nav = [
+  { href: '/products', label: 'Products' },
+  { href: '/compare', label: 'Compare' },
+  { href: '/search', label: 'Search' },
+  { href: '/assistant', label: 'Assistant' },
+  { href: '/best/best-camera-phones', label: 'Guides' }
+]
 
 export default function Header() {
   return (
-    <header className="wf-header">
-      <div className="wf-header-inner">
-        <Link href="/" className="wf-logo">
-          <div className="wf-logo-mark">W</div>
+    <header className="wf-header-wrap">
+      <div className="wf-header">
+        <Link href="/" className="wf-brand" aria-label="Witflag home">
+          <span className="wf-logo">W</span>
           <span>WITFLAG</span>
         </Link>
 
-        <nav className="wf-nav">
-          <Link href="/products">Products</Link>
-          <Link href="/compare">Compare</Link>
-          <Link href="/best">Guides</Link>
-          <Link href="/brands">Brands</Link>
+        <nav className="wf-nav" aria-label="Main navigation">
+          {nav.map((item) => (
+            <Link key={item.href} href={item.href}>{item.label}</Link>
+          ))}
         </nav>
 
-        <div className="wf-header-right">
-          <Link href="/search" className="wf-search-pill">
-            <Search className="h-4 w-4" />
-            <span>Search smartphones...</span>
-            <kbd>⌘K</kbd>
+        <div className="wf-actions">
+          <Link className="wf-search-pill" href="/search">
+            <span><Search size={14} /> Search smartphones...</span>
+            <span className="wf-kbd">⌘K</span>
           </Link>
-
-          <Link href="/assistant" className="wf-theme-dot" aria-label="AI Assistant">
-            <Sparkles className="h-4 w-4" />
+          <Link className="wf-icon-btn" href="/assistant" aria-label="AI assistant">
+            <Sparkles size={17} />
           </Link>
+          <span className="wf-icon-btn" aria-label="Theme preview"><SunMedium size={16} /></span>
         </div>
       </div>
     </header>
