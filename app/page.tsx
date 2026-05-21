@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowRight, BatteryCharging, Bot, Camera, CheckCircle2, Cpu,
   GitCompare, Search, Shield, Sparkles, Star, Trophy, Zap,
@@ -8,14 +9,35 @@ import ScoreRing from '@/components/ScoreRing';
 import { getProducts } from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // ISR: revalidate every hour
+
+/* ─── Metadata ─────────────────────────────────────────── */
+export async function generateMetadata() {
+  return {
+    title: 'Witflag – AI-Powered Product Intelligence for Smarter Buying',
+    description: 'Compare smartphones using unbiased AI scores. Find the best camera, battery life, gaming, or value phones with transparent, daily-updated rankings.',
+    keywords: 'smartphone comparison, AI product scores, best camera phone, battery life ranking, phone finder',
+    openGraph: {
+      title: 'Witflag – AI-Powered Product Intelligence',
+      description: 'We analyze, score and compare smartphones using advanced AI — so you can buy the best, with confidence.',
+      type: 'website',
+      locale: 'en_US',
+      siteName: 'Witflag',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'Witflag – AI-Powered Product Intelligence',
+      description: 'Find your perfect phone with unbiased AI scores.',
+    },
+  };
+}
 
 /* ─── static data ─────────────────────────────────────────── */
-
 const USE_CASES = [
-  { icon: Camera,          label: 'Best Camera Phones',  href: '/best/best-camera-phones',  tag: 'Camera'   },
-  { icon: BatteryCharging, label: 'Best Battery Life',   href: '/best/best-battery-phones', tag: 'Battery'  },
-  { icon: Cpu,             label: 'Best Gaming Phones',  href: '/best/best-gaming-phones',  tag: 'Gaming'   },
-  { icon: Trophy,          label: 'Best Value Phones',   href: '/best/best-value-phones',   tag: 'Value'    },
+  { icon: Camera,          label: 'Best Camera Phones',  href: '/best/camera',  tag: 'Camera'   },
+  { icon: BatteryCharging, label: 'Best Battery Life',   href: '/best/battery', tag: 'Battery'  },
+  { icon: Cpu,             label: 'Best Gaming Phones',  href: '/best/gaming',  tag: 'Gaming'   },
+  { icon: Trophy,          label: 'Best Value Phones',   href: '/best/value',   tag: 'Value'    },
 ];
 
 const AI_SCORES = [
@@ -62,18 +84,31 @@ const FEATURES = [
   { icon: '🌐', label: 'Global Platform',     desc: 'Multi-language, multi-currency, worldwide.'             },
 ];
 
-const DEMO_SCORES = [
-  { val: 82, label: 'Camera',  color: '#22d3ee' },
-  { val: 86, label: 'Battery', color: '#a78bfa' },
-  { val: 88, label: 'Display', color: '#4ade80' },
-  { val: 78, label: 'Gaming',  color: '#fbbf24' },
-  { val: 84, label: 'Value',   color: '#6366f1' },
-];
+/* ─── helper: extract scores from product ────────────────── */
+function getProductScores(product: any) {
+  return {
+    Camera: product.score_camera ?? 0,
+    Battery: product.score_battery ?? 0,
+    Display: product.score_display ?? 0,
+    Gaming: product.score_gaming ?? 0,
+    Value: product.score_value ?? 0,
+  };
+}
 
 /* ─── page ────────────────────────────────────────────────── */
-
 export default async function HomePage() {
-  const products = await getProducts(6);
+  let products: any[] = [];
+  let error = false;
+
+  try {
+    products = await getProducts(6);
+  } catch (err) {
+    console.error('Failed to load products:', err);
+    error = true;
+  }
+
+  const featuredProduct = products?.[0] ?? null;
+  const productScores = featuredProduct ? getProductScores(featuredProduct) : null;
 
   return (
     <main>
@@ -113,11 +148,12 @@ export default async function HomePage() {
               We analyze, score and compare smartphones using advanced AI — so you can buy the best, with confidence.
             </p>
 
-            {/* Search */}
+            {/* Search - improved accessibility */}
             <form action="/search" method="GET" style={{ marginTop: '1.75rem', maxWidth: 500 }}>
               <div className="search-pill">
-                <Search size={15} color="#a78bfa" />
-                <input name="q" placeholder="Search a product, brand, or category..." />
+                <Search size={15} color="#a78bfa" aria-hidden="true" />
+                <label htmlFor="hero-search" className="sr-only">Search products</label>
+                <input id="hero-search" name="q" placeholder="Search a product, brand, or category..." />
                 <button type="submit" className="btn-primary" style={{ borderRadius: 10, padding: '.5rem 1.2rem', fontSize: '.8rem', border: 'none' }}>
                   Search
                 </button>
@@ -156,51 +192,73 @@ export default async function HomePage() {
           {/* Right — hero card (dynamic top product) */}
           <div className="fade-up delay-2">
             <div className="glass" style={{ borderRadius: 24, padding: '1.25rem' }}>
-              {products[0] ? (
+              {featuredProduct ? (
                 <>
                   <div style={{ background: 'rgba(13,9,32,.75)', borderRadius: 18, border: '1px solid rgba(124,58,237,.15)', padding: '1.1rem', marginBottom: '.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ width: 80, height: 120, background: 'linear-gradient(160deg,rgba(124,58,237,.3),rgba(99,102,241,.12))', borderRadius: 14, border: '1px solid rgba(124,58,237,.25)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.4rem' }}>
-                        📱
+                      {/* Product image - now using real image if available */}
+                      <div style={{ width: 80, height: 120, background: 'linear-gradient(160deg,rgba(124,58,237,.3),rgba(99,102,241,.12))', borderRadius: 14, border: '1px solid rgba(124,58,237,.25)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {featuredProduct.image_url ? (
+                          <Image
+                            src={featuredProduct.image_url}
+                            alt={featuredProduct.name}
+                            width={80}
+                            height={120}
+                            style={{ objectFit: 'contain', borderRadius: 12 }}
+                            priority
+                          />
+                        ) : (
+                          <span style={{ fontSize: '2.4rem' }}>📱</span>
+                        )}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '.65rem', color: 'var(--t3)' }}>{products[0].brand ?? 'Featured'}</div>
+                        <div style={{ fontSize: '.65rem', color: 'var(--t3)' }}>{featuredProduct.brand ?? 'Featured'}</div>
                         <div style={{ fontFamily: 'Syne,sans-serif', fontWeight: 900, fontSize: '1.2rem', color: '#fff', margin: '.2rem 0' }}>
-                          {products[0].name}
+                          {featuredProduct.name}
                         </div>
                         <span className="tag tag-v" style={{ fontSize: '.6rem' }}>Top Rated</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '.6rem' }}>
-                          {products[0].price_eur && (
+                          {featuredProduct.price_eur && (
                             <div>
                               <div style={{ fontFamily: 'Syne,sans-serif', fontWeight: 900, fontSize: '1.6rem', color: '#fff' }}>
-                                €{products[0].price_eur}
+                                €{featuredProduct.price_eur}
                               </div>
                               <div style={{ fontSize: '.6rem', color: 'var(--t3)' }}>Price</div>
                             </div>
                           )}
-                          <ScoreRing value={products[0].score_global ?? 84} size="sm" />
+                          <ScoreRing value={featuredProduct.score_global ?? 84} size="sm" />
                           <div style={{ fontSize: '.6rem', color: 'var(--t3)', lineHeight: 1.4 }}>Global<br />Score</div>
                         </div>
                       </div>
                     </div>
                   </div>
 
+                  {/* AI Scores Breakdown - now dynamic */}
                   <div style={{ marginBottom: '.75rem' }}>
                     <div style={{ fontSize: '.6rem', letterSpacing: '.2em', textTransform: 'uppercase', color: 'var(--t3)', fontWeight: 600, marginBottom: '.5rem' }}>
                       AI Scores Breakdown
                     </div>
                     <div className="scores-5">
-                      {DEMO_SCORES.map(({ val, label, color }) => (
-                        <div key={label} className="score-cell">
-                          <div className="sv" style={{ color }}>{val}</div>
-                          <div className="sl">{label}</div>
-                        </div>
-                      ))}
+                      {Object.entries(productScores!).map(([label, val]) => {
+                        const colorMap: Record<string, string> = {
+                          Camera: '#22d3ee',
+                          Battery: '#a78bfa',
+                          Display: '#4ade80',
+                          Gaming: '#fbbf24',
+                          Value: '#6366f1',
+                        };
+                        return (
+                          <div key={label} className="score-cell">
+                            <div className="sv" style={{ color: colorMap[label] || '#a78bfa' }}>{val}</div>
+                            <div className="sl">{label}</div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </>
               ) : (
-                /* Fallback when no products loaded */
+                /* Fallback when no products loaded or error */
                 <div style={{ marginBottom: '.75rem' }}>
                   <div style={{ background: 'rgba(13,9,32,.75)', borderRadius: 18, border: '1px solid rgba(124,58,237,.15)', padding: '1.1rem', marginBottom: '.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -212,9 +270,9 @@ export default async function HomePage() {
                     </div>
                   </div>
                   <div className="scores-5">
-                    {DEMO_SCORES.map(({ val, label, color }) => (
+                    {AI_SCORES.slice(0,5).map(({ label, color }) => (
                       <div key={label} className="score-cell">
-                        <div className="sv" style={{ color }}>{val}</div>
+                        <div className="sv" style={{ color }}>—</div>
                         <div className="sl">{label}</div>
                       </div>
                     ))}
@@ -222,14 +280,35 @@ export default async function HomePage() {
                 </div>
               )}
 
+              {/* Functional "Add to compare" button with query param */}
               <div style={{ display: 'flex', gap: '.5rem' }}>
-                <Link href="/compare" className="btn-primary" style={{ flex: 1, justifyContent: 'center', borderRadius: 10, fontSize: '.75rem', padding: '.5rem' }}>
-                  + Add to compare
-                </Link>
+                {featuredProduct ? (
+                  <Link
+                    href={`/compare?add=${featuredProduct.id}`}
+                    className="btn-primary"
+                    style={{ flex: 1, justifyContent: 'center', borderRadius: 10, fontSize: '.75rem', padding: '.5rem' }}
+                  >
+                    + Add to compare
+                  </Link>
+                ) : (
+                  <button
+                    disabled
+                    className="btn-primary"
+                    style={{ flex: 1, justifyContent: 'center', borderRadius: 10, fontSize: '.75rem', padding: '.5rem', opacity: 0.5, cursor: 'not-allowed' }}
+                  >
+                    + Add to compare
+                  </button>
+                )}
                 <Link href="/search" className="btn-ghost" style={{ borderRadius: 10, fontSize: '.75rem', padding: '.5rem .9rem' }}>
                   Search
                 </Link>
               </div>
+
+              {error && (
+                <div style={{ marginTop: '.75rem', fontSize: '.7rem', color: '#f87171', textAlign: 'center' }}>
+                  ⚠️ Unable to load live products. Showing demo data.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -246,10 +325,9 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1rem' }}>
+          <div className="how-it-works-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
             {HOW_IT_WORKS.map(({ step, title, desc, color }) => (
               <div key={step} className="glass" style={{ borderRadius: 20, padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-                {/* step number watermark */}
                 <div style={{ position: 'absolute', top: '-10px', right: '12px', fontFamily: 'Syne,sans-serif', fontWeight: 900, fontSize: '4.5rem', color, opacity: .07, lineHeight: 1, pointerEvents: 'none' }}>
                   {step}
                 </div>
@@ -267,7 +345,7 @@ export default async function HomePage() {
       {/* ══════════════ USE CASES ══════════════ */}
       <section style={{ background: 'var(--bg)', padding: '2.5rem 2.5rem', borderBottom: '1px solid rgba(124,58,237,.1)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <span className="tag tag-v sec-label" style={{ marginBottom: '.4rem' }}>Browse by need</span>
               <div className="sec-title">Find the Right Phone for You</div>
@@ -275,7 +353,7 @@ export default async function HomePage() {
             <Link href="/products" style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--vl)' }}>View all →</Link>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '.75rem', marginBottom: '1.75rem' }}>
+          <div className="use-cases-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '.75rem', marginBottom: '1.75rem' }}>
             {USE_CASES.map(({ icon: Icon, label, href, tag }) => (
               <Link key={href} href={href} className="glass gring" style={{ borderRadius: 18, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '.4rem' }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,rgba(124,58,237,.25),rgba(99,102,241,.12))', border: '1px solid rgba(124,58,237,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -288,12 +366,12 @@ export default async function HomePage() {
             ))}
           </div>
 
-          {/* AI Scores strip */}
+          {/* AI Scores strip - responsive */}
           <div className="glass" style={{ borderRadius: 20, padding: '1.1rem 1.5rem' }}>
             <div style={{ textAlign: 'center', fontSize: '.62rem', letterSpacing: '.22em', textTransform: 'uppercase', color: 'var(--t3)', fontWeight: 600, marginBottom: '.85rem' }}>
               5 AI Scores — Independently Calculated
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '1.25rem' }}>
+            <div className="ai-scores-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1.25rem' }}>
               {AI_SCORES.map(({ icon: Icon, label, desc, color }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '.65rem' }}>
                   <div style={{ width: 34, height: 34, borderRadius: 9, background: `${color}1a`, border: `1px solid ${color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -342,7 +420,7 @@ export default async function HomePage() {
       {/* ══════════════ PRODUCTS GRID ══════════════ */}
       <section className="hero-bg" style={{ padding: '2.5rem 2.5rem', borderBottom: '1px solid rgba(124,58,237,.1)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <span className="tag tag-c sec-label" style={{ marginBottom: '.4rem' }}>Live AI Data</span>
               <div className="sec-title">Top Smartphones Right Now</div>
@@ -350,6 +428,11 @@ export default async function HomePage() {
             <Link href="/products" style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--vl)' }}>View catalog →</Link>
           </div>
           <ProductGrid products={products} />
+          {error && (
+            <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '.8rem', color: '#f87171' }}>
+              Unable to load latest products. Please try again later.
+            </div>
+          )}
         </div>
       </section>
 
@@ -360,7 +443,7 @@ export default async function HomePage() {
             <span className="tag tag-v" style={{ marginBottom: '.5rem' }}>Trusted by buyers</span>
             <div className="sec-title">What People Are Saying</div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1rem' }}>
+          <div className="testimonials-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
             {TESTIMONIALS.map(({ name, role, text, stars }) => (
               <div key={name} className="glass" style={{ borderRadius: 20, padding: '1.4rem' }}>
                 <div style={{ display: 'flex', gap: '.2rem', marginBottom: '.75rem' }}>
@@ -381,7 +464,7 @@ export default async function HomePage() {
 
       {/* ══════════════ FEATURES ══════════════ */}
       <section style={{ background: 'var(--bg)', borderTop: '1px solid rgba(124,58,237,.1)', padding: '2.5rem 2.5rem' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: '.75rem' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '.75rem' }}>
           {FEATURES.map(({ icon, label, desc }) => (
             <div key={label} className="feat-card">
               <div className="feat-icon">{icon}</div>
