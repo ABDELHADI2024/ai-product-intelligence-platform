@@ -4,31 +4,21 @@ import { getProducts } from '@/lib/products'
 
 export const metadata = {
   title: 'Compare Smartphones | Witflag',
-  description: 'Compare smartphones by global score, camera, battery, gaming, display, and value.',
+  description: 'Compare smartphones by global score, camera, battery, display, gaming, and value.'
 }
 
 export default async function ComparePage() {
-  let products: Awaited<ReturnType<typeof getProducts>> = []
-
-  try {
-    products = await getProducts()
-  } catch {
-    products = []
-  }
+  const products = await getProducts(60)
 
   return (
-    <Suspense
-      fallback={
-        <main className="page">
-          <div className="empty">
-            <div className="empty-icon">⚖️</div>
-            <div className="empty-title">Loading comparison engine...</div>
-            <p>Preparing smartphone comparison data.</p>
-          </div>
-        </main>
-      }
-    >
-      <CompareClient allProducts={products} />
-    </Suspense>
+    <>
+      <section className="page-title">
+        <h1>Compare smartphones</h1>
+        <p>Select 2 to 4 smartphones and compare decision scores side by side.</p>
+      </section>
+      <Suspense fallback={<div className="empty">Loading comparison engine...</div>}>
+        <CompareClient products={products} />
+      </Suspense>
+    </>
   )
 }

@@ -1,45 +1,32 @@
-import Link from 'next/link';
-import { BrainCircuit, Search, Sparkles } from 'lucide-react';
-
-const nav = [
-  ['Products', '/products'],
-  ['Search', '/search'],
-  ['Compare', '/compare'],
-  ['Assistant', '/assistant'],
-  ['Best', '/best'],
-  ['Brands', '/brands'],
-];
+import Link from 'next/link'
+import { Search, Sun } from 'lucide-react'
 
 export default function Header() {
   return (
-    <header className="nav-wrap">
-      <div className="content-shell nav-inner">
-        <Link href="/" className="nav-brand">
-          <div className="logo-mark">W</div>
-          <div>
-            <div className="nav-brand-title">Witflag</div>
-            <div className="nav-brand-sub">AI Smartphone Intelligence</div>
-          </div>
+    <header className="site-header site-shell">
+      <div className="nav-card">
+        <Link href="/" className="logo-wrap" aria-label="Witflag home">
+          <span className="logo-mark">W</span>
+          <span>WITFLAG</span>
         </Link>
 
-        <nav className="nav-links">
-          {nav.map(([label, href]) => (
-            <Link key={href} href={href} className="nav-link">
-              {label}
-            </Link>
-          ))}
+        <nav className="nav-links" aria-label="Main navigation">
+          <Link href="/products">Products</Link>
+          <Link href="/compare">Compare</Link>
+          <Link href="/best/best-camera-phones">Guides</Link>
+          <Link href="/about">About</Link>
         </nav>
 
-        <div className="flex items-center gap-2">
-          <Link href="/search" className="btn-ghost" aria-label="Search">
-            <Search className="h-4 w-4" />
-          </Link>
-          <Link href="/assistant" className="nav-cta">
-            <Sparkles className="h-4 w-4" />
-            Assistant
-          </Link>
-        </div>
+        <form className="header-search" action="/search">
+          <Search size={15} />
+          <input name="q" placeholder="Search smartphones..." aria-label="Search smartphones" />
+          <kbd>⌘K</kbd>
+        </form>
+
+        <button className="icon-btn" aria-label="Theme preview" type="button">
+          <Sun size={16} />
+        </button>
       </div>
     </header>
-  );
+  )
 }

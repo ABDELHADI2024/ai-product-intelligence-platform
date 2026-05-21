@@ -1,40 +1,35 @@
 import type { MetadataRoute } from 'next'
-import { getProducts } from '@/lib/products'
+import { getProducts, productSlug } from '@/lib/products'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://witflag.com'
-
-  let products: Awaited<ReturnType<typeof getProducts>> = []
-
-  try {
-    products = await getProducts()
-  } catch {
-    products = []
-  }
+  const products = await getProducts(200)
 
   const staticRoutes: MetadataRoute.Sitemap = [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/compare`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-  ]
+    '',
+    '/products',
+    '/compare',
+    '/search',
+    '/assistant',
+    '/about',
+    '/methodology',
+    '/best/best-camera-phones',
+    '/best/best-battery-phones',
+    '/best/best-gaming-phones',
+    '/best/best-value-phones'
+  ].map((route) => ({
+    url: `${baseUrl}${route}`,
+    lastModified: new Date(),
+    changeFrequency: route === '' ? 'daily' as const : 'weekly' as const,
+    priority: route === '' ? 1 : 0.8
+  }))
 
-  const productRoutes: MetadataRoute.Sitemap = products
-    .filter((product) => Boolean(product?.slug))
-    .map((product) => ({
-      url: `${baseUrl}/products/${product.slug}`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    }))
+  const productRoutes: MetadataRoute.Sitemap = products.map((product) => ({
+    url: `${baseUrl}/products/${productSlug(product)}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly',
+    priority: 0.7
+  }))
 
   return [...staticRoutes, ...productRoutes]
 }
