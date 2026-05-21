@@ -9,19 +9,19 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "latest",
-    "@tailwindcss/postcss": "latest",
-    "lucide-react": "latest",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "tailwindcss": "latest"
+    "@supabase/supabase-js": "2.106.1",
+    "@tailwindcss/postcss": "4.1.7",
+    "lucide-react": "1.16.0",
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "tailwindcss": "4.1.7"
   },
   "devDependencies": {
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "postcss": "latest",
-    "typescript": "latest"
+    "@types/node": "25.9.1",
+    "@types/react": "19.2.15",
+    "@types/react-dom": "19.2.3",
+    "postcss": "8.4.31",
+    "typescript": "6.0.3"
   }
 }

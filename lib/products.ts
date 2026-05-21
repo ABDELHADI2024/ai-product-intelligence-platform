@@ -209,6 +209,17 @@ export function formatScore(value: string | number | null | undefined | unknown)
   return `${Math.round(score)}/100`;
 }
 
+export function scoreLabel(value: string | number | null | undefined | unknown): string {
+  const score = safeNumber(value);
+
+  if (score === null) return 'Pending';
+  if (score >= 90) return 'Excellent';
+  if (score >= 80) return 'Great';
+  if (score >= 70) return 'Good';
+  if (score >= 60) return 'Fair';
+  return 'Needs review';
+}
+
 export function formatPrice(
   value:
     | Product
@@ -267,6 +278,15 @@ export function getProductName(product: Product): string {
     [product.brand, product.model].filter(Boolean).join(' ') ||
     'Smartphone'
   );
+}
+
+export function productSlug(product: Product): string {
+  if (product.slug) return product.slug;
+
+  return getProductName(product)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 export function getUseCaseLabel(useCaseInput: string): string {
@@ -343,6 +363,10 @@ function rankExistingProductsForUseCase(
   return filtered
     .sort((a, b) => scoreProduct(b, useCase) - scoreProduct(a, useCase))
     .slice(0, limit);
+}
+
+export function getBestProducts(products: Product[], useCase: string, limit = products.length): Product[] {
+  return rankExistingProductsForUseCase(products, useCase, null, limit);
 }
 
 export function buildRecommendations(

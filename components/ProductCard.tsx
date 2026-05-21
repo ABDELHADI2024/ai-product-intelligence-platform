@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowRight, BatteryCharging, Camera, Cpu, ImageIcon } from 'lucide-react';
 import { formatPrice, getProductName, Product, safeNumber, safeText } from '@/lib/products';
 
-type ProductCardProps = { product: Product };
+type ProductCardProps = { product: Product; rank?: number };
 type ScoreTone = 'great' | 'good' | 'mid' | 'low' | 'muted';
 
 function scoreTone(value: number | null): ScoreTone {
@@ -49,13 +49,14 @@ function ScoreBar({
   );
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, rank }: ProductCardProps) {
   const name = getProductName(product);
   const globalScore = safeNumber(product.global_score);
 
   return (
     <article className="pcard gring">
       <div className="pcard-img">
+        {rank ? <span className="rank-chip">{rank}</span> : null}
         <span className={`score-chip ${scoreTone(globalScore)}`}>
           {globalScore !== null ? Math.round(globalScore) : '--'}
         </span>
