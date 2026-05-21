@@ -1,13 +1,19 @@
-import type { CSSProperties } from 'react'
-import { safeNumber, scoreLabel } from '@/lib/products'
+import { formatScore, safeNumber, scoreLabel } from '@/lib/products'
 
-export default function ScoreRing({ value, compact = false }: { value?: string | number | null; compact?: boolean }) {
+type ScoreRingProps = {
+  value?: string | number | null
+  size?: 'sm' | 'md' | 'lg'
+  label?: string
+}
+
+export default function ScoreRing({ value, size = 'md', label }: ScoreRingProps) {
   const score = safeNumber(value)
-  const display = score === null ? '—' : Math.round(score)
-  const style = { ['--score' as string]: score ?? 0 } as CSSProperties
+  const normalized = score === null ? 0 : Math.max(0, Math.min(100, Math.round(score)))
+
   return (
-    <div className={compact ? 'product-score-ring' : 'wf-score-ring'} style={style} title={scoreLabel(score)}>
-      <span>{display}</span>
+    <div className={`wf-score-ring wf-score-ring-${size}`} style={{ ['--score' as string]: normalized }} aria-label={`Score ${formatScore(value)}`}>
+      <span>{formatScore(value)}</span>
+      {label ? <small>{label}</small> : <em>{scoreLabel(value)}</em>}
     </div>
   )
 }

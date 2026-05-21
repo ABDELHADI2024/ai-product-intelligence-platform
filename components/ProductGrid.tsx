@@ -1,43 +1,28 @@
-import ProductCard from './ProductCard';
-import BentoGrid from './BentoGrid';
-import { Product } from '@/lib/products';
+import ProductCard from './ProductCard'
+import { Product } from '@/lib/products'
 
 type ProductGridProps = {
-  products: Product[];
-  columns?: 2 | 3 | 4;
-};
+  products: Product[]
+  limit?: number
+}
 
-export default function ProductGrid({ products, columns = 3 }: ProductGridProps) {
-  if (!products || products.length === 0) {
+export default function ProductGrid({ products, limit }: ProductGridProps) {
+  const visibleProducts = limit ? products.slice(0, limit) : products
+
+  if (!visibleProducts || visibleProducts.length === 0) {
     return (
-      <div
-        className="glass"
-        style={{ borderRadius: 20, padding: '3rem', textAlign: 'center' }}
-      >
-        <div style={{ fontSize: 48, marginBottom: '1rem' }}>📱</div>
-        <h2
-          style={{
-            fontFamily: 'Syne,sans-serif',
-            fontWeight: 900,
-            fontSize: '1.4rem',
-            color: '#fff',
-            margin: 0,
-          }}
-        >
-          No products found
-        </h2>
-        <p style={{ color: 'var(--t2)', marginTop: '.65rem', fontSize: '.88rem' }}>
-          Try adjusting your filters or check back soon.
-        </p>
+      <div className="wf-empty-state">
+        <h3>No products found</h3>
+        <p>Try adjusting your search or connect Supabase product data.</p>
       </div>
-    );
+    )
   }
 
   return (
-    <BentoGrid columns={columns}>
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
+    <div className="wf-product-grid">
+      {visibleProducts.map((product, index) => (
+        <ProductCard key={String(product.id || product.slug || product.full_name || index)} product={product} rank={index + 1} />
       ))}
-    </BentoGrid>
-  );
+    </div>
+  )
 }

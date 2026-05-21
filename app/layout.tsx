@@ -7,14 +7,14 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://witflag.com'),
   title: {
     default: 'Witflag — AI Smartphone Intelligence',
-    template: '%s | Witflag'
+    template: '%s | Witflag',
   },
-  description: 'AI-native smartphone intelligence platform for product search, comparisons, recommendations, scores, and buying guides.',
+  description: 'AI-native smartphone intelligence platform for product search, comparisons, recommendations, smart scores, and buying guides.',
   openGraph: {
     title: 'Witflag — AI Smartphone Intelligence',
     description: 'Score, rank, compare, and discover smartphones using real product data and AI-native decision intelligence.',
-    type: 'website'
-  }
+    type: 'website',
+  },
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -23,7 +23,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <div className="wf-app">
           <Header />
-          <main className="wf-shell wf-main">{children}</main>
+          {children}
           <Footer />
         </div>
       </body>

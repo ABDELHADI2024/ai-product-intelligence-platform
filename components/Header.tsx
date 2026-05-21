@@ -1,12 +1,12 @@
 import Link from 'next/link'
-import { Search, Sparkles, SunMedium } from 'lucide-react'
+import { BrainCircuit, Menu, Search, Sparkles } from 'lucide-react'
 
 const nav = [
   { href: '/products', label: 'Products' },
   { href: '/compare', label: 'Compare' },
-  { href: '/search', label: 'Search' },
   { href: '/assistant', label: 'Assistant' },
-  { href: '/best/best-camera-phones', label: 'Guides' }
+  { href: '/guides', label: 'Guides' },
+  { href: '/brands', label: 'Brands' },
 ]
 
 export default function Header() {
@@ -14,8 +14,11 @@ export default function Header() {
     <header className="wf-header-wrap">
       <div className="wf-header">
         <Link href="/" className="wf-brand" aria-label="Witflag home">
-          <span className="wf-logo">W</span>
-          <span>WITFLAG</span>
+          <span className="wf-logo"><BrainCircuit size={22} /></span>
+          <span>
+            <b>WITFLAG</b>
+            <small>AI product intelligence</small>
+          </span>
         </Link>
 
         <nav className="wf-nav" aria-label="Main navigation">
@@ -24,15 +27,18 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="wf-actions">
-          <Link className="wf-search-pill" href="/search">
-            <span><Search size={14} /> Search smartphones...</span>
-            <span className="wf-kbd">⌘K</span>
+        <div className="wf-header-actions">
+          <Link href="/search" className="wf-search-pill">
+            <Search size={15} />
+            <span>Search products</span>
+            <kbd>⌘K</kbd>
           </Link>
-          <Link className="wf-icon-btn" href="/assistant" aria-label="AI assistant">
-            <Sparkles size={17} />
+          <Link href="/assistant" className="wf-ai-pill">
+            <Sparkles size={15} /> Ask AI
           </Link>
-          <span className="wf-icon-btn" aria-label="Theme preview"><SunMedium size={16} /></span>
+          <button className="wf-mobile-menu" type="button" aria-label="Open menu">
+            <Menu size={20} />
+          </button>
         </div>
       </div>
     </header>
