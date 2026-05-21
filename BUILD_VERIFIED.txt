@@ -1,0 +1,6 @@
+Build verified locally with: npm run build
+Fixes included:
+- lib/products.ts exports all functions/types imported by app/components
+- tailwind.config.ts no longer imports missing tailwindcss package
+- app/compare/CompareClient.tsx TypeScript namespace fix
+- package-lock.json included for stable npm install

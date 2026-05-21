@@ -1,5 +1,5 @@
 'use client'
-import { Fragment, useState, useEffect } from 'react'
+import { Fragment, useState, useEffect, type CSSProperties } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -155,7 +155,7 @@ export default function CompareClient({ allProducts }: { allProducts: Product[] 
           <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Score Breakdown</h2>
           <div
             className="compare-grid"
-            style={{ '--cols': selectedProducts.length } as React.CSSProperties}
+            style={{ '--cols': selectedProducts.length } as CSSProperties}
           >
             {/* Header row */}
             <div className="compare-cell compare-label-cell" style={{ background: 'var(--bg-3)', fontWeight: 700, fontSize: 12, color: 'var(--text-3)', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>

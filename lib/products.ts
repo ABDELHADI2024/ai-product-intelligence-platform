@@ -55,6 +55,26 @@ export type SearchResult = {
   reason: string
 }
 
+
+export type RecommendationResult = {
+  product: Product
+  matchScore: number
+  reason: string
+  strengths: string[]
+}
+
+export type ComparisonWinner = {
+  key: string
+  label: string
+  winner: Product | null
+  value: number | null
+}
+
+export type ComparisonVerdict = {
+  winner: Product | null
+  summary: string
+}
+
 const fallbackProducts: Product[] = [
   {
     id: 'demo-s24-ultra',
@@ -253,6 +273,74 @@ export function formatPrice(value?: Product | string | number | null): string {
 
   const price = safeNumber(value)
   return price !== null ? `$${price.toLocaleString('en-US')}` : 'Price TBA'
+}
+
+
+export function formatScore(value?: unknown): string {
+  const score = safeNumber(value)
+  return score === null ? '—' : `${Math.round(score)}/100`
+}
+
+const comparisonRows: { key: keyof Product; label: string }[] = [
+  { key: 'global_score', label: 'Best overall' },
+  { key: 'camera_score', label: 'Best camera' },
+  { key: 'battery_score', label: 'Best battery' },
+  { key: 'display_score', label: 'Best display' },
+  { key: 'gaming_score', label: 'Best gaming' },
+  { key: 'value_score', label: 'Best value' },
+]
+
+export function getComparisonWinners(products: Product[]): ComparisonWinner[] {
+  return comparisonRows.map((row) => {
+    let winner: Product | null = null
+    let bestValue: number | null = null
+
+    for (const product of products) {
+      const value = safeNumber(product[row.key])
+      if (value === null) continue
+
+      if (bestValue === null || value > bestValue) {
+        bestValue = value
+        winner = product
+      }
+    }
+
+    return {
+      key: String(row.key),
+      label: row.label,
+      winner,
+      value: bestValue,
+    }
+  })
+}
+
+export function getComparisonVerdict(products: Product[]): ComparisonVerdict {
+  const overall = getComparisonWinners(products).find((winner) => winner.key === 'global_score')
+  const winner = overall?.winner || null
+
+  if (!winner) {
+    return {
+      winner: null,
+      summary: 'Select at least two smartphones to generate a comparison verdict.',
+    }
+  }
+
+  const name = getProductName(winner)
+  const score = formatScore(winner.global_score)
+  const camera = safeNumber(winner.camera_score)
+  const battery = safeNumber(winner.battery_score)
+  const value = safeNumber(winner.value_score)
+
+  const signals = [
+    camera !== null ? `camera ${Math.round(camera)}/100` : null,
+    battery !== null ? `battery ${Math.round(battery)}/100` : null,
+    value !== null ? `value ${Math.round(value)}/100` : null,
+  ].filter(Boolean)
+
+  return {
+    winner,
+    summary: `${name} is the strongest overall choice in this comparison with a global score of ${score}${signals.length ? `, supported by ${signals.join(', ')}` : ''}. Use the score rows below if your priority is camera, battery, gaming, display, or value.`,
+  }
 }
 
 export function scoreLabel(value?: unknown): string {
