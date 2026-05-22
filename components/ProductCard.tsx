@@ -1,105 +1,74 @@
-import Link from 'next/link';
-import { ArrowRight, BatteryCharging, Camera, Cpu, ImageIcon } from 'lucide-react';
-import { formatPrice, getProductName, Product, safeNumber, safeText } from '@/lib/products';
+"use client";
 
-type ProductCardProps = { product: Product; rank?: number };
-type ScoreTone = 'great' | 'good' | 'mid' | 'low' | 'muted';
+import { motion } from "framer-motion";
+import { BatteryCharging, Camera, Gauge, Heart, Star } from "lucide-react";
+import { Badge, Button } from "./ui";
 
-function scoreTone(value: number | null): ScoreTone {
-  if (value === null) return 'muted';
-  if (value >= 88) return 'great';
-  if (value >= 78) return 'good';
-  if (value >= 68) return 'mid';
-  return 'low';
-}
+export type Product = {
+  brand: string;
+  model: string;
+  category: string;
+  score: number;
+  price: string;
+  tag: string;
+  specs: string[];
+  color: string;
+};
 
-function ScoreBar({
-  value,
-  label,
-  icon: Icon,
-  color = '#22d3ee',
-}: {
-  value?: string | number | null;
-  label: string;
-  icon: typeof Camera;
-  color?: string;
-}) {
-  const n = safeNumber(value);
-  const width = n === null ? 0 : Math.max(8, Math.min(100, Math.round(n)));
-
+export function ProductCard({ product }: { product: Product }) {
   return (
-    <div className="score-bar">
-      <div className="score-bar-top">
-        <span>
-          <Icon size={13} style={{ color }} />
-          {label}
-        </span>
-        <strong className={`score-text ${scoreTone(n)}`}>{n === null ? 'Pending' : Math.round(n)}</strong>
-      </div>
-      <div className="score-track" aria-hidden="true">
-        <div
-          className="score-fill"
-          style={{
-            width: `${width}%`,
-            background: `linear-gradient(90deg, ${color}, ${color}aa)`,
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-export default function ProductCard({ product, rank }: ProductCardProps) {
-  const name = getProductName(product);
-  const globalScore = safeNumber(product.global_score);
-
-  return (
-    <article className="pcard gring">
-      <div className="pcard-img">
-        {rank ? <span className="rank-chip">{rank}</span> : null}
-        <span className={`score-chip ${scoreTone(globalScore)}`}>
-          {globalScore !== null ? Math.round(globalScore) : '--'}
-        </span>
-        {product.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.image_url} alt={name} />
-        ) : (
-          <div className="phone-placeholder" aria-label="No product image">
-            <ImageIcon size={30} />
+    <motion.article
+      whileHover={{ y: -8 }}
+      transition={{ type: "spring", stiffness: 260, damping: 22 }}
+      className="group overflow-hidden rounded-[2rem] border border-border bg-white shadow-sm transition hover:shadow-[0_28px_90px_rgba(17,18,15,0.12)]"
+    >
+      <div className="relative min-h-48 overflow-hidden bg-surface-2 p-5">
+        <div className={`absolute -right-10 -top-10 h-44 w-44 rounded-full blur-2xl ${product.color}`} />
+        <div className="relative z-10 flex items-start justify-between">
+          <Badge>{product.category}</Badge>
+          <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-foreground shadow-sm transition hover:scale-105" aria-label="Save product">
+            <Heart size={17} />
+          </button>
+        </div>
+        <div className="relative z-10 mt-10 flex justify-center">
+          <div className="h-32 w-20 rounded-[1.4rem] border border-black/10 bg-gradient-to-br from-zinc-900 via-zinc-700 to-zinc-950 p-2 shadow-2xl transition group-hover:rotate-3">
+            <div className="h-full rounded-[1rem] border border-white/10 bg-gradient-to-br from-white/18 to-transparent" />
           </div>
-        )}
-      </div>
-
-      <div className="pcard-body">
-        <div className="pcard-meta">
-          <div className="pcard-brand">{safeText(product.brand, 'Smartphone')}</div>
-          <span className="pcard-rank">Global score</span>
-        </div>
-
-        <div className="pcard-name line-clamp-2">{name}</div>
-        <div className="pcard-price">{formatPrice(product)}</div>
-
-        <div className="pcard-scores">
-          <ScoreBar value={product.camera_score} label="Camera" icon={Camera} color="#22d3ee" />
-          <ScoreBar value={product.battery_score} label="Battery" icon={BatteryCharging} color="#4ade80" />
-          <ScoreBar value={product.gaming_score} label="Gaming" icon={Cpu} color="#fbbf24" />
-        </div>
-
-        <p className="pcard-summary line-clamp-2">
-          {safeText(product.content_summary_en, 'AI-ready smartphone profile prepared for search, comparison, and recommendations.')}
-        </p>
-
-        <div className="pcard-actions">
-          {product.slug ? (
-            <Link href={`/products/${product.slug}`} className="btn-primary pcard-main-action">
-              Details <ArrowRight size={13} />
-            </Link>
-          ) : null}
-          <Link href={`/compare?phones=${product.slug || ''}`} className="btn-ghost pcard-secondary-action">
-            Compare
-          </Link>
         </div>
       </div>
-    </article>
+
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-bold text-muted">{product.brand}</p>
+            <h3 className="mt-1 text-xl font-black tracking-[-0.04em]">{product.model}</h3>
+          </div>
+          <div className="rounded-2xl bg-primary px-3 py-2 text-center text-primary-foreground">
+            <div className="flex items-center gap-1 text-xs font-bold text-accent"><Star size={13} fill="currentColor" /> AI</div>
+            <div className="text-lg font-black">{product.score}</div>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-2 text-sm text-muted">
+          {product.specs.map((spec, index) => {
+            const Icon = index === 0 ? Gauge : index === 1 ? Camera : BatteryCharging;
+            return (
+              <div key={spec} className="flex items-center gap-2 rounded-2xl bg-surface-2 px-3 py-2">
+                <Icon size={15} className="text-foreground" />
+                <span>{spec}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted">From</p>
+            <p className="text-xl font-black">{product.price}</p>
+          </div>
+          <Button className="px-4 py-2.5">Compare</Button>
+        </div>
+      </div>
+    </motion.article>
   );
 }

@@ -1,43 +1,42 @@
-import Link from 'next/link';
-import { Search, Sun } from 'lucide-react';
+import { Cpu, Menu, Search, Sparkles } from "lucide-react";
+import { Button } from "./ui";
 
-const nav = [
-  ['Products', '/products'],
-  ['Compare', '/compare'],
-  ['Guides', '/best'],
-  ['About', '/about'],
-];
+const navItems = ["Products", "Compare", "AI Guide", "Rankings"];
 
-export default function Header() {
+export function Header() {
   return (
-    <header className="nav-wrap">
-      <div className="content-shell nav-inner">
-        <Link href="/" className="nav-brand">
-          <div className="logo-mark">W</div>
-          <div className="nav-brand-copy">
-            <div className="nav-brand-title">Witflag</div>
-            <div className="nav-brand-sub">AI Smartphone Intelligence</div>
+    <header className="sticky top-0 z-50 border-b border-border/70 bg-background/72 backdrop-blur-2xl">
+      <div className="container-shell flex h-20 items-center justify-between">
+        <a href="#" className="flex items-center gap-3" aria-label="Witflag home">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
+            <Cpu size={21} />
           </div>
-        </Link>
+          <div>
+            <div className="text-lg font-black tracking-[-0.04em]">Witflag</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">AI Product Intel</div>
+          </div>
+        </a>
 
-        <nav className="nav-links">
-          {nav.map(([label, href]) => (
-            <Link key={href} href={href} className="nav-link">
-              {label}
-            </Link>
+        <nav className="hidden items-center gap-2 rounded-full border border-border bg-white/65 p-1 shadow-sm lg:flex">
+          {navItems.map((item) => (
+            <a key={item} href={`#${item.toLowerCase().replace(" ", "-")}`} className="rounded-full px-4 py-2 text-sm font-bold text-muted transition hover:bg-surface-2 hover:text-foreground">
+              {item}
+            </a>
           ))}
         </nav>
 
-        <div className="nav-actions">
-          <form action="/search" method="GET" className="nav-search">
-            <Search size={15} />
-            <input name="q" placeholder="Search smartphones..." />
-            <span className="kbd">⌘K</span>
-          </form>
-          <Link href="/assistant" className="theme-btn" aria-label="Ask assistant">
-            <Sun size={16} />
-          </Link>
+        <div className="hidden items-center gap-3 md:flex">
+          <button className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white/70 text-foreground transition hover:bg-surface-2" aria-label="Search">
+            <Search size={18} />
+          </button>
+          <Button>
+            <Sparkles size={17} /> Ask AI
+          </Button>
         </div>
+
+        <button className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white/70 lg:hidden" aria-label="Open menu">
+          <Menu size={20} />
+        </button>
       </div>
     </header>
   );

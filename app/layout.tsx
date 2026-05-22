@@ -1,21 +1,16 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Witflag — AI Smartphone Intelligence Platform',
-  description: 'AI-native smartphone intelligence platform for search, comparison, recommendations, scores, and buying guides.',
+  title: "Witflag — AI Product Intelligence Platform",
+  description:
+    "AI-native product intelligence platform for semantic search, recommendations, comparisons, and consumer tech discovery."
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>
-        <Header />
-        {children}
-        <Footer />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
