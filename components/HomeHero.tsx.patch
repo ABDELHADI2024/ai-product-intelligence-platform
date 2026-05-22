@@ -1,0 +1,10 @@
+--- a/components/HomeHero.tsx
++++ b/components/HomeHero.tsx
+@@
+ export default function HomeHero({ products, featured }: { products: Product[]; featured?: Product }) {
+-  const featuredName = getProductName(featured)
+-  const featuredScore = safeNumber(featured?.global_score)
++  const heroProduct = featured ?? products[0] ?? null
++  const featuredName = heroProduct ? getProductName(heroProduct) : 'AI product intelligence'
++  const featuredScore = safeNumber(heroProduct?.global_score)
+   const productCount = Math.max(products.length, 50)
