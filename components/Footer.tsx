@@ -1,10 +1,12 @@
-import { Cpu, Github, Linkedin, Twitter } from "lucide-react";
+import { Cpu } from "lucide-react";
 
 const columns = [
   { title: "Platform", links: ["Semantic Search", "AI Recommendations", "Product Compare", "RAG Assistant"] },
   { title: "Categories", links: ["Smartphones", "Laptops", "Wearables", "AI Devices"] },
   { title: "Company", links: ["About", "Roadmap", "Contact", "Privacy"] }
 ];
+
+const socialLinks = ["X", "GH", "IN"];
 
 export function Footer() {
   return (
@@ -25,9 +27,14 @@ export function Footer() {
               A reusable AI-native vertical intelligence platform for product search, comparison, recommendations, and SEO-scale content automation.
             </p>
             <div className="mt-6 flex gap-3">
-              {[Twitter, Github, Linkedin].map((Icon, index) => (
-                <a key={index} href="#" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/72 transition hover:bg-white/16 hover:text-white" aria-label="Social link">
-                  <Icon size={18} />
+              {socialLinks.map((label) => (
+                <a
+                  key={label}
+                  href="#"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xs font-black text-white/72 transition hover:bg-white/16 hover:text-white"
+                  aria-label={`${label} social link`}
+                >
+                  {label}
                 </a>
               ))}
             </div>

@@ -84,3 +84,5 @@ export function BentoGrid() {
     </section>
   );
 }
+
+export default BentoGrid;
