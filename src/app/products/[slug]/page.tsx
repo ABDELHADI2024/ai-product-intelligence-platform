@@ -22,20 +22,20 @@ export async function generateMetadata(props: {
   const isRealImage = product.image && product.image !== "/images/placeholder.svg" && product.image.trim() !== ""
 
   return {
-    title: `${product.name} — ProductIntel`,
+    title: `${product.name} — Witflag`,
     description: product.description,
     alternates: {
       canonical: productUrl,
     },
     openGraph: {
-      title: `${product.name} — ProductIntel`,
+      title: `${product.name} — Witflag`,
       description: product.description,
       url: productUrl,
       images: isRealImage ? [{ url: product.image }] : undefined,
     },
     twitter: {
       card: isRealImage ? "summary_large_image" : "summary",
-      title: `${product.name} — ProductIntel`,
+      title: `${product.name} — Witflag`,
       description: product.description,
       images: isRealImage ? product.image : undefined,
     },
@@ -112,6 +112,16 @@ function ScoreRow({ label, value }: { label: string; value: number }) {
   )
 }
 
+function formatPrice(product: { price: number; currency: string; stockStatus?: string }): string {
+  if (product.stockStatus === "coming_soon") return "Coming soon"
+  if (product.price > 0) {
+    return product.currency === "MAD"
+      ? `${product.price.toLocaleString()} MAD`
+      : `$${product.price.toLocaleString()}`
+  }
+  return "Price N/A"
+}
+
 export default async function ProductDetailPage(props: {
   params: Promise<{ slug: string }>
 }) {
@@ -123,6 +133,7 @@ export default async function ProductDetailPage(props: {
   const specs = Object.entries(product.specs)
   const pros = product.pros ?? []
   const cons = product.cons ?? []
+  const displayPrice = formatPrice(product)
 
   const scores = [
     { label: "Gaming", value: product.scores.gaming },
@@ -142,11 +153,11 @@ export default async function ProductDetailPage(props: {
     },
     description: product.description,
     category: categoryLabels[product.category] ?? product.category,
-    offers: {
+    offers: product.stockStatus === "coming_soon" ? undefined : {
       "@type": "Offer",
       price: product.price,
       priceCurrency: product.currency,
-      availability: "https://schema.org/InStock",
+      availability: product.price > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
     },
   }
 
@@ -204,10 +215,12 @@ export default async function ProductDetailPage(props: {
               </p>
 
               <div className="mt-6 flex items-center gap-6">
-                {product.price > 0 ? (
+                {product.stockStatus === "coming_soon" ? (
+                  <span className="text-2xl font-bold text-amber-400">Coming soon</span>
+                ) : product.price > 0 ? (
                   <>
                     <span className="text-3xl font-bold text-white">
-                      ${product.price.toLocaleString()}
+                      {displayPrice}
                     </span>
                     <span className="text-sm text-zinc-600">{product.currency}</span>
                   </>
@@ -350,10 +363,12 @@ export default async function ProductDetailPage(props: {
                       : `${s.label.toLowerCase()}`
                   )
                   .join(", ")}{" "}
-                {product.price > 0 ? (
+                {product.stockStatus === "coming_soon" ? (
+                  <>coming soon to market</>
+                ) : product.price > 0 ? (
                   <>with a price of{" "}
                     <strong className="text-white">
-                      ${product.price.toLocaleString()}
+                      {displayPrice}
                     </strong></>
                 ) : (
                   <>with price not publicly listed</>
