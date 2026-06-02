@@ -74,10 +74,21 @@ const bestForLabels: Record<string, string> = {
   Value: "Best price-to-performance ratio",
 }
 
+function formatPrice(product: Product): string {
+  if (product.stockStatus === "coming_soon") return "Coming soon"
+  if (product.price > 0) {
+    return product.currency === "MAD"
+      ? `${product.price.toLocaleString()} MAD`
+      : `$${product.price.toLocaleString()}`
+  }
+  return "Price N/A"
+}
+
 export default function ProductCard({ product }: { product: Product }) {
   const bestLabel = getBestLabel(product.scores)
   const whyLabel = getWhyLabel(product.scores.overall, product.price)
   const watchLabel = getWatchLabel(product.price)
+  const displayPrice = formatPrice(product)
 
   return (
     <Link
@@ -185,9 +196,11 @@ export default function ProductCard({ product }: { product: Product }) {
       </div>
 
       <div className="mt-auto flex items-center justify-between border-t border-white/[0.06] pt-4">
-        {product.price > 0 ? (
+        {product.stockStatus === "coming_soon" ? (
+          <span className="text-sm font-medium text-amber-400">Coming soon</span>
+        ) : product.price > 0 ? (
           <span className="text-lg font-bold text-white">
-            ${product.price.toLocaleString()}
+            {displayPrice}
           </span>
         ) : (
           <span className="text-sm text-zinc-600">Price N/A</span>
