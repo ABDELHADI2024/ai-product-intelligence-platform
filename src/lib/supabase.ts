@@ -93,6 +93,11 @@ function normalizeProduct(row: Record<string, unknown>): Product | null {
       Math.max(1, [cameraScore, batteryScore, gamingScore, displayScore, valueScore].filter(Boolean).length)
   )
 
+  const madPrice = num(row, "price_mad")
+  const price = madPrice > 0 ? madPrice : num(row, "price_usd", "price_eur", "price")
+  const currency = madPrice > 0 ? "MAD" : (str(row, "currency") || "USD")
+  const stockStatus = str(row, "stock_status").toLowerCase()
+
   return {
     id: str(row, "id"),
     name,
@@ -101,8 +106,8 @@ function normalizeProduct(row: Record<string, unknown>): Product | null {
     category: str(row, "normalized_category", "product_type", "category"),
     description: str(row, "description") || generateDescription(row),
     image: str(row, "image", "images", "image_url", "product_image", "main_image") || "/images/placeholder.svg",
-    price: num(row, "price_usd", "price_eur", "price_mad", "price"),
-    currency: str(row, "currency") || "USD",
+    price,
+    currency,
     releaseDate: str(row, "release_year"),
     specs: buildSpecs(row),
     scores: {
@@ -116,6 +121,7 @@ function normalizeProduct(row: Record<string, unknown>): Product | null {
     pros: Array.isArray(row.pros) ? row.pros : [],
     cons: Array.isArray(row.cons) ? row.cons : [],
     affiliateUrl: str(row, "affiliate_url") || undefined,
+    stockStatus: stockStatus || undefined,
   }
 }
 
